@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dual-Fall Tetris (20x20 Grid)</title>
+    <title>Dual-Fall Tetris (15x20 Grid)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -63,7 +63,7 @@
             <div class="text-3xl text-cyan-400 font-black tracking-widest flex items-center gap-2">
                 <i class="fa-solid fa-cubes-stacked text-amber-500"></i>
                 <span class="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-orange-400">DUAL-FALL</span>
-                <span class="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700 font-mono">20x20</span>
+                <span class="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700 font-mono">15x20</span>
             </div>
         </div>
 
@@ -120,7 +120,7 @@
                     </div>
                 </div>
                 <div class="text-[10px] text-slate-400 mt-2 text-center">
-                    W: Rotate | A/D: Move | S: Drop
+                    W: Rotate | A/D: Move | S: Fast Drop
                 </div>
             </div>
 
@@ -135,11 +135,14 @@
             </div>
         </div>
 
-        <!-- Center Stage: 20x20 Game Board + Stats -->
+        <!-- Center Stage: 15x20 Game Board + Stats -->
         <div class="lg:col-span-6 flex flex-col items-center gap-3 order-1 lg:order-2">
             
             <!-- Global Scoreboard Bar -->
-            <div class="w-full glass-panel px-4 py-3 rounded-2xl flex justify-between items-center">
+            <div class="w-full glass-panel px-4 py-3 rounded-2xl flex justify-between items-center relative">
+                <button id="mobile-swap-btn" class="lg:hidden absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 bg-indigo-600 border border-indigo-400 text-white p-2 rounded-full shadow-lg z-20 active:bg-indigo-500">
+                    <i class="fa-solid fa-right-left"></i>
+                </button>
                 <div class="text-center">
                     <span class="text-[10px] text-slate-400 uppercase tracking-widest block">SCORE</span>
                     <span id="score-val" class="pixel-font text-xl text-amber-400">000000</span>
@@ -156,12 +159,12 @@
 
             <!-- Canvas Board Container -->
             <div class="relative glass-panel p-2 rounded-2xl border-2 border-slate-700/80 shadow-2xl">
-                <canvas id="tetris-canvas" width="480" height="480" class="rounded-xl bg-slate-950/90"></canvas>
+                <canvas id="tetris-canvas" width="360" height="480" class="rounded-xl bg-slate-950/90"></canvas>
 
                 <!-- Start / Game Over Overlay -->
                 <div id="game-overlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm rounded-xl flex flex-col justify-center items-center p-6 text-center z-10 transition-all duration-300">
-                    <h1 id="overlay-title" class="pixel-font text-2xl md:text-3xl text-amber-400 mb-3 leading-tight">DUAL FALL<br><span class="text-xs text-cyan-400">20 x 20 TETRIS</span></h1>
-                    <p id="overlay-desc" class="text-sm text-slate-300 max-w-xs mb-6">Control 2 pieces simultaneously on a massive 20x20 board! Stack & clean lines together.</p>
+                    <h1 id="overlay-title" class="pixel-font text-2xl md:text-3xl text-amber-400 mb-3 leading-tight">DUAL FALL<br><span class="text-xs text-cyan-400">15 x 20 TETRIS</span></h1>
+                    <p id="overlay-desc" class="text-sm text-slate-300 max-w-xs mb-6">Control 2 pieces simultaneously! Press SPACE to swap pieces positions.</p>
                     
                     <button id="start-btn" class="px-8 py-3 bg-gradient-to-r from-cyan-500 via-purple-500 to-orange-500 hover:from-cyan-400 hover:to-orange-400 text-slate-950 font-black tracking-wider text-base rounded-xl transition transform hover:scale-105 shadow-lg shadow-purple-500/20 active:scale-95">
                         START GAME
@@ -203,7 +206,7 @@
                     </div>
                 </div>
                 <div class="text-[10px] text-slate-400 mt-2 text-center">
-                    UP: Rotate | LEFT/RIGHT: Move | DOWN: Drop
+                    UP: Rotate | LEFT/RIGHT: Move | DOWN: Fast Drop
                 </div>
             </div>
 
@@ -222,17 +225,16 @@
 
     <!-- Footer Rules -->
     <footer class="mt-4 text-xs text-slate-500 text-center max-w-xl">
-        <p>Both shapes drop simultaneously into the 20x20 field. Pieces block and collide with each other! Clear full horizontal rows of 20 blocks for massive scores.</p>
+        <p>Both shapes drop simultaneously into the 15x20 field. Press SPACE to swap places. Clear full rows for points.</p>
     </footer>
 
     <!-- JavaScript Game Logic -->
     <script>
         // --- CONSTANTS & CONFIGURATION ---
-        const COLS = 20;
+        const COLS = 15;
         const ROWS = 20;
-        const BLOCK_SIZE = 24; // 24px * 20 = 480px width & height
+        const BLOCK_SIZE = 24;
 
-        // Standard Tetromino shapes
         const SHAPES = {
             'I': [[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]],
             'J': [[1,0,0], [1,1,1], [0,0,0]],
@@ -243,19 +245,16 @@
             'Z': [[1,1,0], [0,1,1], [0,0,0]]
         };
 
-        // Player 1 color themes (Cyan/Blue shades)
         const P1_COLORS = {
             'I': '#06b6d4', 'J': '#3b82f6', 'L': '#0ea5e9',
             'O': '#38bdf8', 'S': '#22d3ee', 'T': '#818cf8', 'Z': '#2563eb'
         };
 
-        // Player 2 color themes (Orange/Magenta/Red shades)
         const P2_COLORS = {
             'I': '#f97316', 'J': '#ef4444', 'L': '#f59e0b',
             'O': '#fbbf24', 'S': '#ec4899', 'T': '#f43f5e', 'Z': '#dc2626'
         };
 
-        // Audio System (Synthesizer via Web Audio API)
         class SoundFX {
             constructor() {
                 this.ctx = null;
@@ -316,7 +315,7 @@
             playClear() {
                 if (!this.enabled || !this.ctx) return;
                 const now = this.ctx.currentTime;
-                const notes = [261.63, 329.63, 392.00, 523.25]; // C E G C
+                const notes = [261.63, 329.63, 392.00, 523.25];
                 notes.forEach((freq, idx) => {
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
@@ -350,7 +349,6 @@
 
         const sound = new SoundFX();
 
-        // Canvas Setup
         const canvas = document.getElementById('tetris-canvas');
         const ctx = canvas.getContext('2d');
 
@@ -364,7 +362,6 @@
         const p2NextCanvas = document.getElementById('p2-next');
         const p2NextCtx = p2NextCanvas.getContext('2d');
 
-        // Game State Variables
         let grid = createGrid(ROWS, COLS);
         let score = 0;
         let lines = 0;
@@ -374,17 +371,14 @@
         let gameRunning = false;
 
         let lastTime = 0;
-        let dropCounter = 0;
-        let dropInterval = 800; // Drop speed in ms
+        let dropInterval = 800;
 
-        // Flash lines animation state
         let clearingLines = [];
         let clearAnimTimer = 0;
 
-        // Player Objects
         class Player {
             constructor(id, startCol, palette) {
-                this.id = id; // 1 or 2
+                this.id = id;
                 this.startCol = startCol;
                 this.palette = palette;
                 
@@ -397,6 +391,9 @@
                 this.nextType = '';
                 this.holdType = null;
                 this.canHold = true;
+                
+                this.dropCounter = 0;
+                this.softDrop = false;
 
                 this.reset();
             }
@@ -410,7 +407,6 @@
                 this.type = type;
                 this.matrix = SHAPES[type];
                 this.color = this.palette[type];
-                // Spawn position: P1 starts near col 4, P2 starts near col 13
                 this.x = this.startCol - Math.floor(this.matrix[0].length / 2);
                 this.y = 0;
             }
@@ -418,6 +414,8 @@
             reset() {
                 this.holdType = null;
                 this.canHold = true;
+                this.softDrop = false;
+                this.dropCounter = 0;
                 this.nextType = this.getRandomPieceType();
                 this.fetchNextPiece();
             }
@@ -443,10 +441,9 @@
             }
         }
 
-        const p1 = new Player(1, 5, P1_COLORS);
-        const p2 = new Player(2, 14, P2_COLORS);
+        const p1 = new Player(1, 3, P1_COLORS);
+        const p2 = new Player(2, 11, P2_COLORS);
 
-        // Grid Initialization
         function createGrid(r, c) {
             const matrix = [];
             for (let y = 0; y < r; ++y) {
@@ -455,12 +452,11 @@
             return matrix;
         }
 
-        // --- COLLISION LOGIC ---
-        // Checks collision against static grid AND the other active player piece
-        function collide(player, otherPlayer, customPos = null, customMatrix = null) {
+        function collide(player, otherPlayer, offsetX = 0, offsetY = 0, customMatrix = null) {
             const m = customMatrix || player.matrix;
-            const px = customPos ? customPos.x : player.x;
-            const py = customPos ? customPos.y : player.y;
+            if (!m) return false;
+            const px = player.x + offsetX;
+            const py = player.y + offsetY;
 
             for (let r = 0; r < m.length; ++r) {
                 for (let c = 0; c < m[r].length; ++c) {
@@ -468,29 +464,14 @@
                         const boardX = px + c;
                         const boardY = py + r;
 
-                        // Check Board Boundaries
-                        if (boardX < 0 || boardX >= COLS || boardY >= ROWS) {
-                            return true;
-                        }
+                        if (boardX < 0 || boardX >= COLS || boardY >= ROWS) return true;
+                        if (boardY >= 0 && grid[boardY][boardX] !== 0) return true;
 
-                        // Check Static Stack Blocks (grid values !== 0)
-                        if (boardY >= 0 && grid[boardY][boardX] !== 0) {
-                            return true;
-                        }
-
-                        // Check Inter-Piece Collision (with the other player's active piece)
                         if (otherPlayer && otherPlayer.matrix) {
-                            const otherMatrix = otherPlayer.matrix;
                             const omX = boardX - otherPlayer.x;
                             const omY = boardY - otherPlayer.y;
-
-                            if (
-                                omY >= 0 && omY < otherMatrix.length &&
-                                omX >= 0 && omX < otherMatrix[0].length
-                            ) {
-                                if (otherMatrix[omY][omX] !== 0) {
-                                    return true; // Collided with other falling shape!
-                                }
+                            if (omY >= 0 && omY < otherPlayer.matrix.length && omX >= 0 && omX < otherPlayer.matrix[0].length) {
+                                if (otherPlayer.matrix[omY][omX] !== 0) return true;
                             }
                         }
                     }
@@ -499,53 +480,41 @@
             return false;
         }
 
-        // Lock piece into static grid
         function lockPiece(player) {
             for (let r = 0; r < player.matrix.length; ++r) {
                 for (let c = 0; c < player.matrix[r].length; ++c) {
                     if (player.matrix[r][c] !== 0) {
                         const boardY = player.y + r;
                         const boardX = player.x + c;
-
-                        // Game Over Check: Lock above top boundary
                         if (boardY < 0) {
                             triggerGameOver();
                             return;
                         }
-                        // Store color hex in grid
                         grid[boardY][boardX] = player.color;
                     }
                 }
             }
-            sound.playLock();
         }
 
-        // --- PLAYER ACTIONS & MOVEMENT ---
-
         function playerMove(player, otherPlayer, dir) {
-            player.x += dir;
-            if (collide(player, otherPlayer)) {
-                player.x -= dir; // Revert move
-            } else {
+            if (!collide(player, otherPlayer, dir, 0)) {
+                player.x += dir;
                 sound.playMove();
             }
         }
 
         function playerRotate(player, otherPlayer) {
             const originalMatrix = player.matrix;
-            // Rotate matrix clockwise
             const m = player.matrix;
             const rotated = m[0].map((_, index) => m.map(row => row[index]).reverse());
             player.matrix = rotated;
 
-            // Wall Kick logic
             let offset = 1;
             const posX = player.x;
-            while (collide(player, otherPlayer)) {
+            while (collide(player, otherPlayer, 0, 0)) {
                 player.x += offset;
                 offset = -(offset + (offset > 0 ? 1 : -1));
                 if (Math.abs(offset) > m[0].length + 1) {
-                    // Rotation failed
                     player.matrix = originalMatrix;
                     player.x = posX;
                     return;
@@ -554,67 +523,50 @@
             sound.playRotate();
         }
 
-        function playerDrop(player, otherPlayer) {
-            player.y++;
-            if (collide(player, otherPlayer)) {
-                player.y--;
-                lockPiece(player);
-                player.fetchNextPiece();
-
-                // Double check immediately if newly spawned piece collides with existing state
-                if (collide(player, otherPlayer)) {
-                    triggerGameOver();
-                }
-            } else {
-                score += 1; // Minor soft drop bonus
-                updateScoreUI();
-            }
-        }
-
-        // Calculate Ghost Piece position for visual preview
         function getGhostY(player, otherPlayer) {
             let ghostY = player.y;
-            while (!collide(player, otherPlayer, { x: player.x, y: ghostY + 1 })) {
+            while (!collide(player, otherPlayer, 0, (ghostY - player.y) + 1)) {
                 ghostY++;
             }
             return ghostY;
         }
 
-        // --- SIMULTANEOUS AUTOMATIC STEPPING ---
-        function stepTick() {
-            // Drop both pieces down simultaneously
-            // To ensure fair logic, we compute whether they can move down
-            const p1CanDrop = !collide(p1, p2, { x: p1.x, y: p1.y + 1 });
-            const p2CanDrop = !collide(p2, p1, { x: p2.x, y: p2.y + 1 });
-
-            if (p1CanDrop) {
-                p1.y++;
+        function processDrop(p, other) {
+            if (!collide(p, other, 0, 1)) {
+                p.y++;
+                if (p.softDrop) {
+                    score += 1;
+                    updateScoreUI();
+                }
             } else {
-                lockPiece(p1);
+                if (collide(p, null, 0, 1)) {
+                    lockPiece(p);
+                    sound.playLock();
+                    checkLineClears();
+                    p.fetchNextPiece();
+                    
+                    if (collide(p, other, 0, 0)) {
+                        triggerGameOver();
+                    }
+                }
             }
-
-            if (p2CanDrop) {
-                p2.y++;
-            } else {
-                lockPiece(p2);
-            }
-
-            // Fetch new pieces for those that locked
-            if (!p1CanDrop) {
-                p1.fetchNextPiece();
-                if (collide(p1, p2)) triggerGameOver();
-            }
-
-            if (!p2CanDrop) {
-                p2.fetchNextPiece();
-                if (collide(p2, p1)) triggerGameOver();
-            }
-
-            // Check for completed line clears
-            checkLineClears();
         }
 
-        // Line Clear Logic
+        function swapPieces() {
+            const p1Clone = { x: p2.x, y: p2.y, matrix: p1.matrix };
+            const p2Clone = { x: p1.x, y: p1.y, matrix: p2.matrix };
+
+            const p1Fits = !collide(p1Clone, null, 0, 0);
+            const p2Fits = !collide(p2Clone, null, 0, 0);
+            const overlap = collide(p1Clone, p2Clone, 0, 0);
+
+            if (p1Fits && p2Fits && !overlap) {
+                const tempX = p1.x; p1.x = p2.x; p2.x = tempX;
+                const tempY = p1.y; p1.y = p2.y; p2.y = tempY;
+                sound.playRotate();
+            }
+        }
+
         function checkLineClears() {
             let cleared = [];
             for (let y = ROWS - 1; y >= 0; --y) {
@@ -625,28 +577,26 @@
                         break;
                     }
                 }
-                if (fullRow) {
-                    cleared.push(y);
-                }
+                if (fullRow) cleared.push(y);
             }
 
             if (cleared.length > 0) {
                 clearingLines = cleared;
-                clearAnimTimer = 12; // Frames for flashing line clear animation
+                clearAnimTimer = 12; 
                 sound.playClear();
 
-                // Calculate Score based on lines cleared simultaneously
                 const basePoints = [0, 100, 300, 500, 800, 1200, 1600, 2000];
                 const pts = basePoints[Math.min(cleared.length, 7)] || (cleared.length * 300);
                 score += pts * level;
                 lines += cleared.length;
 
-                // Level up every 10 lines
                 level = Math.floor(lines / 10) + 1;
-                dropInterval = Math.max(100, 800 - (level - 1) * 70);
+                dropInterval = Math.max(80, 1000 * Math.pow(0.85, level - 1));
 
                 updateScoreUI();
+                return true;
             }
+            return false;
         }
 
         function removeClearedLines() {
@@ -656,8 +606,6 @@
             });
             clearingLines = [];
         }
-
-        // --- RENDERING & DRAWING ---
 
         function drawBlock(ctx, x, y, color, isGhost = false, scale = BLOCK_SIZE) {
             const px = x * scale;
@@ -674,21 +622,17 @@
                 return;
             }
 
-            // Solid Filled Block with Beveling
             ctx.fillStyle = color;
             ctx.fillRect(px, py, scale, scale);
 
-            // Bevel Highlight (Top/Left)
             ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
             ctx.fillRect(px, py, scale, 3);
             ctx.fillRect(px, py, 3, scale);
 
-            // Bevel Shadow (Bottom/Right)
             ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
             ctx.fillRect(px, py + scale - 3, scale, 3);
             ctx.fillRect(px + scale - 3, py, 3, scale);
 
-            // Inner Grid line outline for modern neon look
             ctx.strokeStyle = 'rgba(0,0,0,0.15)';
             ctx.strokeRect(px, py, scale, scale);
         }
@@ -697,7 +641,6 @@
             ctx.fillStyle = '#090d14';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Grid guidelines
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
             ctx.lineWidth = 1;
 
@@ -715,23 +658,19 @@
                 ctx.stroke();
             }
 
-            // Subdued center divider line to visually separate left/right starting zones
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
             ctx.setLineDash([4, 4]);
             ctx.beginPath();
-            ctx.moveTo(10 * BLOCK_SIZE, 0);
-            ctx.lineTo(10 * BLOCK_SIZE, canvas.height);
+            ctx.moveTo(7.5 * BLOCK_SIZE, 0);
+            ctx.lineTo(7.5 * BLOCK_SIZE, canvas.height);
             ctx.stroke();
             ctx.setLineDash([]);
         }
 
         function draw() {
-            // Clear main board
             drawGridBackground();
 
-            // 1. Draw static grid
             for (let r = 0; r < ROWS; ++r) {
-                // If line is currently flashing clear animation
                 if (clearingLines.includes(r)) {
                     ctx.fillStyle = (clearAnimTimer % 2 === 0) ? '#ffffff' : '#fbbf24';
                     ctx.fillRect(0, r * BLOCK_SIZE, canvas.width, BLOCK_SIZE);
@@ -746,22 +685,19 @@
             }
 
             if (!gameOver && gameRunning) {
-                // 2. Draw Player 1 & Ghost
                 if (p1.matrix) {
                     const ghostY1 = getGhostY(p1, p2);
                     drawMatrix(ctx, p1.matrix, p1.x, ghostY1, p1.color, true);
-                    drawMatrix(ctx, p1.matrix, p1.x, p1.y, p1.color);
+                    drawMatrix(ctx, p1.matrix, p1.x, p1.y, p1.color, false, BLOCK_SIZE);
                 }
 
-                // 3. Draw Player 2 & Ghost
                 if (p2.matrix) {
                     const ghostY2 = getGhostY(p2, p1);
                     drawMatrix(ctx, p2.matrix, p2.x, ghostY2, p2.color, true);
-                    drawMatrix(ctx, p2.matrix, p2.x, p2.y, p2.color);
+                    drawMatrix(ctx, p2.matrix, p2.x, p2.y, p2.color, false, BLOCK_SIZE);
                 }
             }
 
-            // Draw Hold & Next Mini Preview Canvases
             drawPreview(p1HoldCtx, p1.holdType, P1_COLORS);
             drawPreview(p1NextCtx, p1.nextType, P1_COLORS);
             drawPreview(p2HoldCtx, p2.holdType, P2_COLORS);
@@ -786,30 +722,36 @@
             const color = palette[type];
             const miniScale = 14;
 
-            // Center matrix inside preview box
             const offsetX = (context.canvas.width / miniScale - matrix[0].length) / 2;
             const offsetY = (context.canvas.height / miniScale - matrix.length) / 2;
 
             drawMatrix(context, matrix, offsetX, offsetY, color, false, miniScale);
         }
 
-        // --- GAME LOOP ---
         function update(time = 0) {
             const deltaTime = time - lastTime;
             lastTime = time;
 
             if (gameRunning && !isPaused && !gameOver) {
-                // Flash animation for line clear
                 if (clearingLines.length > 0) {
                     clearAnimTimer--;
                     if (clearAnimTimer <= 0) {
                         removeClearedLines();
                     }
                 } else {
-                    dropCounter += deltaTime;
-                    if (dropCounter > dropInterval) {
-                        stepTick();
-                        dropCounter = 0;
+                    const p1Speed = p1.softDrop ? 50 : dropInterval;
+                    const p2Speed = p2.softDrop ? 50 : dropInterval;
+
+                    p1.dropCounter += deltaTime;
+                    if (p1.dropCounter >= p1Speed) {
+                        processDrop(p1, p2);
+                        p1.dropCounter = 0;
+                    }
+
+                    p2.dropCounter += deltaTime;
+                    if (p2.dropCounter >= p2Speed) {
+                        processDrop(p2, p1);
+                        p2.dropCounter = 0;
                     }
                 }
             }
@@ -818,7 +760,6 @@
             requestAnimationFrame(update);
         }
 
-        // --- GAME CONTROL FUNCTIONS ---
         function startGame() {
             grid = createGrid(ROWS, COLS);
             score = 0;
@@ -871,9 +812,7 @@
             document.getElementById('level-val').innerText = level;
         }
 
-        // --- INPUT HANDLING (KEYBOARD & TOUCH) ---
         window.addEventListener('keydown', e => {
-            // Audio Context init on first interaction
             sound.init();
 
             if (e.key === 'Escape') {
@@ -883,12 +822,15 @@
 
             if (!gameRunning || isPaused || gameOver) return;
 
-            // Prevent default page scroll for arrow keys and space
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
                 e.preventDefault();
             }
 
-            // --- PLAYER 1 CONTROLS (WASD + Shift/E for Hold) ---
+            if (e.code === 'Space') {
+                swapPieces();
+                return;
+            }
+
             switch (e.code) {
                 case 'KeyA':
                     playerMove(p1, p2, -1);
@@ -900,14 +842,16 @@
                     playerRotate(p1, p2);
                     break;
                 case 'KeyS':
-                    playerDrop(p1, p2);
+                    if (!p1.softDrop) {
+                        p1.softDrop = true;
+                        p1.dropCounter = 50;
+                    }
                     break;
                 case 'ShiftLeft':
                 case 'KeyE':
                     p1.hold();
                     break;
 
-                // --- PLAYER 2 CONTROLS (Arrow Keys + Numpad0/Slash for Hold) ---
                 case 'ArrowLeft':
                     playerMove(p2, p1, -1);
                     break;
@@ -918,7 +862,10 @@
                     playerRotate(p2, p1);
                     break;
                 case 'ArrowDown':
-                    playerDrop(p2, p1);
+                    if (!p2.softDrop) {
+                        p2.softDrop = true;
+                        p2.dropCounter = 50;
+                    }
                     break;
                 case 'Numpad0':
                 case 'Slash':
@@ -928,7 +875,11 @@
             }
         });
 
-        // --- BUTTON EVENT LISTENERS ---
+        window.addEventListener('keyup', e => {
+            if (e.code === 'KeyS') p1.softDrop = false;
+            if (e.code === 'ArrowDown') p2.softDrop = false;
+        });
+
         document.getElementById('start-btn').addEventListener('click', () => {
             sound.init();
             if (isPaused) {
@@ -952,34 +903,44 @@
                 : "fa-solid fa-volume-xmark text-slate-500";
         });
 
-        // Mobile On-Screen Buttons Binding
-        const bindTouchBtn = (id, action) => {
+        const bindTouchBtn = (id, startAction, endAction = null) => {
             const btn = document.getElementById(id);
             if (!btn) return;
             btn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 sound.init();
-                if (gameRunning && !isPaused && !gameOver) action();
+                if (gameRunning && !isPaused && !gameOver) startAction();
             });
-            btn.addEventListener('click', (e) => {
-                sound.init();
-                if (gameRunning && !isPaused && !gameOver) action();
-            });
+            
+            if (endAction) {
+                btn.addEventListener('touchend', (e) => { e.preventDefault(); endAction(); });
+                btn.addEventListener('touchcancel', (e) => { e.preventDefault(); endAction(); });
+            } else {
+                btn.addEventListener('click', (e) => {
+                    sound.init();
+                    if (gameRunning && !isPaused && !gameOver) startAction();
+                });
+            }
         };
 
-        // P1 Mobile Controls
         bindTouchBtn('p1-rot', () => playerRotate(p1, p2));
         bindTouchBtn('p1-left', () => playerMove(p1, p2, -1));
-        bindTouchBtn('p1-down', () => playerDrop(p1, p2));
         bindTouchBtn('p1-right', () => playerMove(p1, p2, 1));
+        bindTouchBtn('p1-down', 
+            () => { p1.softDrop = true; p1.dropCounter = 50; },
+            () => { p1.softDrop = false; }
+        );
 
-        // P2 Mobile Controls
         bindTouchBtn('p2-rot', () => playerRotate(p2, p1));
         bindTouchBtn('p2-left', () => playerMove(p2, p1, -1));
-        bindTouchBtn('p2-down', () => playerDrop(p2, p1));
         bindTouchBtn('p2-right', () => playerMove(p2, p1, 1));
+        bindTouchBtn('p2-down', 
+            () => { p2.softDrop = true; p2.dropCounter = 50; },
+            () => { p2.softDrop = false; }
+        );
 
-        // Start Initial Loop
+        bindTouchBtn('mobile-swap-btn', swapPieces);
+
         requestAnimationFrame(update);
     </script>
 </body>
