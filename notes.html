@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Eisenhower Matrix - Sticky Notes</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Subtle dotted pattern to look like a planner or board */
+            background-color: #f8fafc;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .font-hand {
+            font-family: 'Caveat', cursive;
+            font-size: 1.25rem;
+            line-height: 1.2;
+        }
+
+        /* Hide scrollbar for textareas but allow scrolling */
+        textarea::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+
+        /* Sticky note basic styling */
+        .sticky-note {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+            touch-action: none; /* Prevent screen scrolling when dragging notes */
+        }
+        
+        .sticky-note:hover {
+            z-index: 10;
+        }
+
+        /* The visual drag layer for smooth moving */
+        .dragging-clone {
+            pointer-events: none;
+            z-index: 1000 !important;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1) !important;
+            transform: scale(1.05) rotate(0deg) !important;
+            opacity: 0.9;
+        }
+
+        /* Custom realistic tape for the notes */
+        .tape {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 20px;
+            background-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            backdrop-filter: blur(2px);
+            z-index: 2;
+            cursor: grab;
+        }
+        
+        .tape:active {
+            cursor: grabbing;
+        }
+
+        /* Quadrant responsive height */
+        .quadrant-container {
+            min-height: 350px;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-slate-800">
+
+    <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex justify-between items-center z-20 shadow-sm shrink-0">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Task Matrix</h1>
+            <p class="text-sm text-slate-500 hidden sm:block">Organize your priorities via the Eisenhower Method.</p>
+        </div>
+        <button onclick="addNote('q1')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full font-medium transition-colors shadow-md flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            New Note
+        </button>
+    </header>
+
+    <main class="flex-grow p-4 md:p-6 overflow-y-auto">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 h-full max-w-7xl mx-auto">
+            
+            <!-- Quadrant 1: Urgent & Important -->
+            <div class="quadrant bg-red-50/60 rounded-2xl border-2 border-red-200 p-4 flex flex-col shadow-sm quadrant-container relative transition-colors" data-id="q1">
+                <div class="flex justify-between items-center mb-4 pb-2 border-b border-red-200/50">
+                    <h2 class="font-bold text-red-800 text-lg flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-red-500"></span> Do First
+                    </h2>
+                    <span class="text-xs font-medium text-red-600/70 bg-red-100 px-2 py-1 rounded-md">Urgent & Important</span>
+                </div>
+                <div class="notes-container flex-grow flex flex-wrap gap-4 content-start" id="container-q1"></div>
+            </div>
+
+            <!-- Quadrant 2: Not Urgent & Important -->
+            <div class="quadrant bg-blue-50/60 rounded-2xl border-2 border-blue-200 p-4 flex flex-col shadow-sm quadrant-container relative transition-colors" data-id="q2">
+                <div class="flex justify-between items-center mb-4 pb-2 border-b border-blue-200/50">
+                    <h2 class="font-bold text-blue-800 text-lg flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-blue-500"></span> Schedule
+                    </h2>
+                    <span class="text-xs font-medium text-blue-600/70 bg-blue-100 px-2 py-1 rounded-md">Not Urgent & Important</span>
+                </div>
+                <div class="notes-container flex-grow flex flex-wrap gap-4 content-start" id="container-q2"></div>
+            </div>
+
+            <!-- Quadrant 3: Urgent & Not Important -->
+            <div class="quadrant bg-yellow-50/60 rounded-2xl border-2 border-yellow-200 p-4 flex flex-col shadow-sm quadrant-container relative transition-colors" data-id="q3">
+                <div class="flex justify-between items-center mb-4 pb-2 border-b border-yellow-200/50">
+                    <h2 class="font-bold text-yellow-800 text-lg flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-yellow-500"></span> Delegate
+                    </h2>
+                    <span class="text-xs font-medium text-yellow-600/70 bg-yellow-100 px-2 py-1 rounded-md">Urgent & Not Important</span>
+                </div>
+                <div class="notes-container flex-grow flex flex-wrap gap-4 content-start" id="container-q3"></div>
+            </div>
+
+            <!-- Quadrant 4: Not Urgent & Not Important -->
+            <div class="quadrant bg-slate-100/60 rounded-2xl border-2 border-slate-200 p-4 flex flex-col shadow-sm quadrant-container relative transition-colors" data-id="q4">
+                <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-200/50">
+                    <h2 class="font-bold text-slate-700 text-lg flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-slate-400"></span> Don't Do
+                    </h2>
+                    <span class="text-xs font-medium text-slate-500 bg-slate-200 px-2 py-1 rounded-md">Not Urgent & Not Important</span>
+                </div>
+                <div class="notes-container flex-grow flex flex-wrap gap-4 content-start" id="container-q4"></div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // State management
+        let notes = [];
+        
+        // Visual configurations for sticky notes
+        const colors = ['bg-yellow-200', 'bg-pink-200', 'bg-blue-200', 'bg-emerald-200', 'bg-purple-200', 'bg-orange-200'];
+        const rotations = ['-rotate-3', '-rotate-2', '-rotate-1', 'rotate-1', 'rotate-2', 'rotate-3'];
+
+        // Load notes from local storage on startup
+        function loadNotes() {
+            const saved = localStorage.getItem('eisenhower_notes');
+            if (saved) {
+                try {
+                    notes = JSON.parse(saved);
+                } catch (e) {
+                    console.error("Error loading notes", e);
+                    notes = [];
+                }
+            } else {
+                // Default placeholder notes to guide the user
+                notes = [
+                    { id: generateId(), text: "Finish the project report", quadrant: "q1", color: "bg-yellow-200", rotation: "-rotate-2" },
+                    { id: generateId(), text: "Plan next week's meals", quadrant: "q2", color: "bg-blue-200", rotation: "rotate-1" },
+                    { id: generateId(), text: "Reply to non-critical emails", quadrant: "q3", color: "bg-pink-200", rotation: "-rotate-1" },
+                    { id: generateId(), text: "Mindless doomscrolling", quadrant: "q4", color: "bg-emerald-200", rotation: "rotate-3" }
+                ];
+                saveNotes();
+            }
+            renderAllNotes();
+        }
+
+        function saveNotes() {
+            localStorage.setItem('eisenhower_notes', JSON.stringify(notes));
+        }
+
+        function generateId() {
+            return Math.random().toString(36).substr(2, 9);
+        }
+
+        function getRandomElement(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function addNote(quadrantId) {
+            const newNote = {
+                id: generateId(),
+                text: "",
+                quadrant: quadrantId,
+                color: getRandomElement(colors),
+                rotation: getRandomElement(rotations)
+            };
+            notes.push(newNote);
+            saveNotes();
+            renderAllNotes();
+            
+            // Focus the newly created note
+            setTimeout(() => {
+                const textarea = document.querySelector(`.sticky-note[data-id="${newNote.id}"] textarea`);
+                if(textarea) textarea.focus();
+            }, 50);
+        }
+
+        function updateNoteText(id, newText) {
+            const note = notes.find(n => n.id === id);
+            if (note) {
+                note.text = newText;
+                saveNotes();
+            }
+        }
+
+        function deleteNote(id) {
+            // Find element and animate it out before removing from state
+            const el = document.querySelector(`.sticky-note[data-id="${id}"]`);
+            if (el) {
+                el.style.transform = 'scale(0.8)';
+                el.style.opacity = '0';
+                setTimeout(() => {
+                    notes = notes.filter(n => n.id !== id);
+                    saveNotes();
+                    renderAllNotes();
+                }, 200);
+            }
+        }
+
+        function updateNoteQuadrant(id, newQuadrant) {
+            const note = notes.find(n => n.id === id);
+            if (note && note.quadrant !== newQuadrant) {
+                note.quadrant = newQuadrant;
+                saveNotes();
+            }
+        }
+
+        function createNoteElement(note) {
+            const div = document.createElement('div');
+            // Construct the sticky note appearance
+            div.className = `sticky-note relative w-44 h-44 p-3 shadow-md hover:shadow-lg rounded-sm ${note.color} ${note.rotation} flex flex-col shrink-0`;
+            div.dataset.id = note.id;
+
+            // Tape element (acting as the main drag handle visually)
+            const tape = document.createElement('div');
+            tape.className = 'tape drag-handle';
+            
+            // Drag target overlay (invisible, covers top edge for easier grabbing)
+            const dragArea = document.createElement('div');
+            dragArea.className = 'absolute top-0 left-0 w-full h-8 cursor-grab active:cursor-grabbing z-10 drag-handle';
+
+            // The text content area
+            const textarea = document.createElement('textarea');
+            textarea.className = 'font-hand w-full flex-grow bg-transparent border-none outline-none resize-none text-slate-800 z-0 relative mt-3';
+            textarea.placeholder = "Write a task...";
+            textarea.value = note.text;
+            
+            // Auto-save on typing
+            textarea.addEventListener('input', (e) => {
+                updateNoteText(note.id, e.target.value);
+            });
+
+            // Delete button
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'absolute bottom-2 right-2 p-1.5 text-black/30 hover:text-red-600 hover:bg-white/30 rounded-full transition-colors z-10';
+            deleteBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            `;
+            deleteBtn.onclick = () => deleteNote(note.id);
+
+            // Assemble the note
+            div.appendChild(tape);
+            div.appendChild(dragArea);
+            div.appendChild(textarea);
+            div.appendChild(deleteBtn);
+
+            return div;
+        }
+
+        function renderAllNotes() {
+            // Clear all containers
+            ['q1', 'q2', 'q3', 'q4'].forEach(q => {
+                document.getElementById(`container-${q}`).innerHTML = '';
+            });
+
+            // Distribute notes to their respective containers
+            notes.forEach(note => {
+                const el = createNoteElement(note);
+                const container = document.getElementById(`container-${note.quadrant}`);
+                if (container) {
+                    container.appendChild(el);
+                }
+            });
+        }
+
+        let draggedElement = null;
+        let dragClone = null;
+        let offsetX = 0;
+        let offsetY = 0;
+        let activeQuadrant = null;
+
+        // Listen for standard mouse and touch events
+        document.addEventListener('mousedown', handleDragStart, { passive: false });
+        document.addEventListener('touchstart', handleDragStart, { passive: false });
+
+        function handleDragStart(e) {
+            // Only start drag if clicking the drag-handle (the tape or top area)
+            if (!e.target.classList.contains('drag-handle')) return;
+            
+            const noteEl = e.target.closest('.sticky-note');
+            if (!noteEl) return;
+
+            e.preventDefault(); // Prevent text selection/scrolling
+            
+            const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+
+            draggedElement = noteEl;
+            const rect = noteEl.getBoundingClientRect();
+            
+            // Calculate where exactly on the note the user clicked
+            offsetX = clientX - rect.left;
+            offsetY = clientY - rect.top;
+
+            // Create a visual clone to follow the cursor
+            dragClone = noteEl.cloneNode(true);
+            dragClone.classList.add('dragging-clone');
+            dragClone.style.position = 'fixed';
+            dragClone.style.left = rect.left + 'px';
+            dragClone.style.top = rect.top + 'px';
+            dragClone.style.margin = '0';
+            
+            document.body.appendChild(dragClone);
+
+            // Make the original note invisible but keep its space in the layout
+            noteEl.style.opacity = '0';
+
+            // Bind move and end events
+            document.addEventListener('mousemove', handleDragMove, { passive: false });
+            document.addEventListener('touchmove', handleDragMove, { passive: false });
+            document.addEventListener('mouseup', handleDragEnd);
+            document.addEventListener('touchend', handleDragEnd);
+        }
+
+        function handleDragMove(e) {
+            if (!dragClone) return;
+            e.preventDefault(); // Prevent pulling down to refresh on mobile
+
+            const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+
+            // Move the clone
+            dragClone.style.left = (clientX - offsetX) + 'px';
+            dragClone.style.top = (clientY - offsetY) + 'px';
+
+            // Highlight the quadrant underneath the cursor
+            dragClone.style.display = 'none'; // Temporarily hide clone to find element below it
+            const elemBelow = document.elementFromPoint(clientX, clientY);
+            dragClone.style.display = 'block';
+
+            const quadrant = elemBelow ? elemBelow.closest('.quadrant') : null;
+            
+            // Remove highlight from previous quadrant
+            if (activeQuadrant && activeQuadrant !== quadrant) {
+                activeQuadrant.classList.remove('ring-4', 'ring-indigo-400', 'ring-opacity-50');
+            }
+            
+            // Add highlight to current quadrant
+            if (quadrant) {
+                quadrant.classList.add('ring-4', 'ring-indigo-400', 'ring-opacity-50');
+                activeQuadrant = quadrant;
+            } else {
+                activeQuadrant = null;
+            }
+        }
+
+        function handleDragEnd(e) {
+            if (!dragClone || !draggedElement) return;
+
+            const clientX = e.type.includes('touch') ? e.changedTouches[0].clientX : e.clientX;
+            const clientY = e.type.includes('touch') ? e.changedTouches[0].clientY : e.clientY;
+
+            dragClone.style.display = 'none';
+            const elemBelow = document.elementFromPoint(clientX, clientY);
+            
+            const targetQuadrant = elemBelow ? elemBelow.closest('.quadrant') : null;
+
+            if (targetQuadrant) {
+                const newQuadrantId = targetQuadrant.dataset.id;
+                // Move the actual DOM element
+                targetQuadrant.querySelector('.notes-container').appendChild(draggedElement);
+                // Update state
+                updateNoteQuadrant(draggedElement.dataset.id, newQuadrantId);
+            }
+
+            // Clean up quadrant highlights
+            if (activeQuadrant) {
+                activeQuadrant.classList.remove('ring-4', 'ring-indigo-400', 'ring-opacity-50');
+                activeQuadrant = null;
+            }
+
+            // Clean up DOM and state
+            dragClone.remove();
+            draggedElement.style.opacity = '1';
+            
+            dragClone = null;
+            draggedElement = null;
+
+            // Remove temporary event listeners
+            document.removeEventListener('mousemove', handleDragMove);
+            document.removeEventListener('touchmove', handleDragMove);
+            document.removeEventListener('mouseup', handleDragEnd);
+            document.removeEventListener('touchend', handleDragEnd);
+        }
+
+        // Initialize application on load
+        window.onload = loadNotes;
+    </script>
+</body>
+</html>
