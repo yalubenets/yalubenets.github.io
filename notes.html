@@ -93,12 +93,47 @@
             
             <!-- Quadrant 1: Urgent & Important -->
             <div class="quadrant bg-red-50/60 rounded-2xl border-2 border-red-200 p-4 flex flex-col shadow-sm quadrant-container relative transition-colors" data-id="q1">
-                <div class="flex justify-between items-center mb-4 pb-2 border-b border-red-200/50">
+                <div class="flex justify-between items-center mb-4 pb-2 border-b border-red-200/50 relative z-20">
                     <h2 class="font-bold text-red-800 text-lg flex items-center gap-2">
                         <span class="w-3 h-3 rounded-full bg-red-500"></span> Do First
                     </h2>
                     <span class="text-xs font-medium text-red-600/70 bg-red-100 px-2 py-1 rounded-md">Urgent & Important</span>
                 </div>
+                <div class="notes-container flex-grow relative" id="container-q1"></div>
+            </div>
+
+            <!-- Quadrant 2: Not Urgent & Important -->
+            <div class="quadrant bg-blue-50/60 rounded-2xl border-2 border-blue-200 p-4 flex flex-col shadow-sm quadrant-container relative transition-colors" data-id="q2">
+                <div class="flex justify-between items-center mb-4 pb-2 border-b border-blue-200/50 relative z-20">
+                    <h2 class="font-bold text-blue-800 text-lg flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-blue-500"></span> Schedule
+                    </h2>
+                    <span class="text-xs font-medium text-blue-600/70 bg-blue-100 px-2 py-1 rounded-md">Not Urgent & Important</span>
+                </div>
+                <div class="notes-container flex-grow relative" id="container-q2"></div>
+            </div>
+
+            <!-- Quadrant 3: Urgent & Not Important -->
+            <div class="quadrant bg-yellow-50/60 rounded-2xl border-2 border-yellow-200 p-4 flex flex-col shadow-sm quadrant-container relative transition-colors" data-id="q3">
+                <div class="flex justify-between items-center mb-4 pb-2 border-b border-yellow-200/50 relative z-20">
+                    <h2 class="font-bold text-yellow-800 text-lg flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-yellow-500"></span> Delegate
+                    </h2>
+                    <span class="text-xs font-medium text-yellow-600/70 bg-yellow-100 px-2 py-1 rounded-md">Urgent & Not Important</span>
+                </div>
+                <div class="notes-container flex-grow relative" id="container-q3"></div>
+            </div>
+
+            <!-- Quadrant 4: Not Urgent & Not Important -->
+            <div class="quadrant bg-slate-100/60 rounded-2xl border-2 border-slate-200 p-4 flex flex-col shadow-sm quadrant-container relative transition-colors" data-id="q4">
+                <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-200/50 relative z-20">
+                    <h2 class="font-bold text-slate-700 text-lg flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-slate-400"></span> Don't Do
+                    </h2>
+                    <span class="text-xs font-medium text-slate-500 bg-slate-200 px-2 py-1 rounded-md">Not Urgent & Not Important</span>
+                </div>
+                <div class="notes-container flex-grow relative" id="container-q4"></div>
+            </div>
                 <div class="notes-container flex-grow flex flex-wrap gap-4 content-start" id="container-q1"></div>
             </div>
 
@@ -159,10 +194,10 @@
             } else {
                 // Default placeholder notes to guide the user
                 notes = [
-                    { id: generateId(), text: "Finish the project report", quadrant: "q1", color: "bg-yellow-200", rotation: "-rotate-2" },
-                    { id: generateId(), text: "Plan next week's meals", quadrant: "q2", color: "bg-blue-200", rotation: "rotate-1" },
-                    { id: generateId(), text: "Reply to non-critical emails", quadrant: "q3", color: "bg-pink-200", rotation: "-rotate-1" },
-                    { id: generateId(), text: "Mindless doomscrolling", quadrant: "q4", color: "bg-emerald-200", rotation: "rotate-3" }
+                    { id: generateId(), text: "Finish the project report", quadrant: "q1", color: "bg-yellow-200", rotation: "-rotate-2", x: 10, y: 10 },
+                    { id: generateId(), text: "Plan next week's meals", quadrant: "q2", color: "bg-blue-200", rotation: "rotate-1", x: 20, y: 30 },
+                    { id: generateId(), text: "Reply to non-critical emails", quadrant: "q3", color: "bg-pink-200", rotation: "-rotate-1", x: 15, y: 15 },
+                    { id: generateId(), text: "Mindless doomscrolling", quadrant: "q4", color: "bg-emerald-200", rotation: "rotate-3", x: 50, y: 20 }
                 ];
                 saveNotes();
             }
@@ -182,12 +217,26 @@
         }
 
         function addNote(quadrantId) {
+            // Find a good initial position
+            const container = document.getElementById(`container-${quadrantId}`);
+            let initialX = 20;
+            let initialY = 20;
+            
+            // Scatter slightly so they don't pile up perfectly
+            const existingInQuadrant = notes.filter(n => n.quadrant === quadrantId);
+            if (existingInQuadrant.length > 0) {
+                initialX += Math.random() * 60;
+                initialY += Math.random() * 60;
+            }
+
             const newNote = {
                 id: generateId(),
                 text: "",
                 quadrant: quadrantId,
                 color: getRandomElement(colors),
-                rotation: getRandomElement(rotations)
+                rotation: getRandomElement(rotations),
+                x: initialX,
+                y: initialY
             };
             notes.push(newNote);
             saveNotes();
@@ -215,26 +264,26 @@
                 el.style.transform = 'scale(0.8)';
                 el.style.opacity = '0';
                 setTimeout(() => {
-                    notes = notes.filter(n => n.id !== id);
-                    saveNotes();
-                    renderAllNotes();
-                }, 200);
-            }
-        }
-
-        function updateNoteQuadrant(id, newQuadrant) {
+        function updateNoteQuadrant(id, newQuadrant, newX, newY) {
             const note = notes.find(n => n.id === id);
-            if (note && note.quadrant !== newQuadrant) {
+            if (note) {
                 note.quadrant = newQuadrant;
+                // Update position relative to the new quadrant
+                note.x = newX;
+                note.y = newY;
                 saveNotes();
             }
         }
 
         function createNoteElement(note) {
             const div = document.createElement('div');
-            // Construct the sticky note appearance
-            div.className = `sticky-note relative w-44 h-44 p-3 shadow-md hover:shadow-lg rounded-sm ${note.color} ${note.rotation} flex flex-col shrink-0`;
+            // Construct the sticky note appearance. Added absolute positioning.
+            div.className = `sticky-note absolute w-44 h-44 p-3 shadow-md hover:shadow-lg rounded-sm ${note.color} ${note.rotation} flex flex-col shrink-0`;
             div.dataset.id = note.id;
+            
+            // Apply saved position
+            div.style.left = `${note.x}px`;
+            div.style.top = `${note.y}px`;
 
             // Tape element (acting as the main drag handle visually)
             const tape = document.createElement('div');
@@ -380,14 +429,46 @@
             dragClone.style.display = 'none';
             const elemBelow = document.elementFromPoint(clientX, clientY);
             
-            const targetQuadrant = elemBelow ? elemBelow.closest('.quadrant') : null;
+            // Check if dropped outside main app area
+            if (!elemBelow || !elemBelow.closest('main')) {
+                // Determine logic for dropping out of bounds. The user wants it to "disappear".
+                deleteNote(draggedElement.dataset.id);
+            } else {
+                const targetQuadrant = elemBelow.closest('.quadrant');
 
-            if (targetQuadrant) {
-                const newQuadrantId = targetQuadrant.dataset.id;
-                // Move the actual DOM element
-                targetQuadrant.querySelector('.notes-container').appendChild(draggedElement);
-                // Update state
-                updateNoteQuadrant(draggedElement.dataset.id, newQuadrantId);
+                if (targetQuadrant) {
+                    const newQuadrantId = targetQuadrant.dataset.id;
+                    const container = targetQuadrant.querySelector('.notes-container');
+                    const containerRect = container.getBoundingClientRect();
+                    
+                    // Calculate new relative position
+                    let newX = clientX - offsetX - containerRect.left;
+                    let newY = clientY - offsetY - containerRect.top;
+
+                    // Constrain within the container bounds so it doesn't get lost
+                    const noteWidth = draggedElement.offsetWidth;
+                    const noteHeight = draggedElement.offsetHeight;
+                    
+                    // Padding to keep tape visible
+                    const padding = 10; 
+
+                    newX = Math.max(padding, Math.min(newX, containerRect.width - noteWidth - padding));
+                    newY = Math.max(padding, Math.min(newY, containerRect.height - noteHeight - padding));
+
+                    // Move the actual DOM element
+                    container.appendChild(draggedElement);
+                    
+                    // Apply new position visually
+                    draggedElement.style.left = `${newX}px`;
+                    draggedElement.style.top = `${newY}px`;
+                    draggedElement.style.position = 'absolute';
+
+                    // Update state
+                    updateNoteQuadrant(draggedElement.dataset.id, newQuadrantId, newX, newY);
+                } else {
+                    // Dropped in a valid area but not a quadrant, snap back to original position
+                    draggedElement.style.opacity = '1';
+                }
             }
 
             // Clean up quadrant highlights
