@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homepage</title>
+    <style>
+        /* Basic styling to make the page look nice */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 40px 60px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* Styling the links to look like buttons */
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .btn:hover {
+            transform: scale(1.05); /* Slight zoom effect on hover */
+        }
+
+        .btn-tetris {
+            background-color: #007bff; /* Blue button */
+        }
+
+        .btn-tetris:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-notes {
+            background-color: #28a745; /* Green button */
+        }
+
+        .btn-notes:hover {
+            background-color: #1e7e34;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Welcome!</h1>
+        <p>What would you like to do today?</p>
+        
+        <!-- Navigation Buttons -->
+        <div>
+            <a href="tetris.html" class="btn btn-tetris">Play Tetris</a>
+            <a href="notes.html" class="btn btn-notes">Go to Notes</a>
+        </div>
+    </div>
+
+</body>
+</html>
