@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dual Tetris</title>
+    <title>Dual-Fall Tetris (15x20 Grid)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@500;700&display=swap');
         
@@ -27,73 +28,132 @@
         }
 
         .glow-p1 {
-            box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
-            border-color: rgba(6, 182, 212, 0.3);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+            border-color: rgba(6, 182, 212, 0.6);
         }
 
         .glow-p2 {
-            box-shadow: 0 0 15px rgba(249, 115, 22, 0.2);
-            border-color: rgba(249, 115, 22, 0.3);
+            box-shadow: 0 0 15px rgba(249, 115, 22, 0.4);
+            border-color: rgba(249, 115, 22, 0.6);
+        }
+
+        /* Keycaps design */
+        .keycap {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-bottom: 3px solid #161b22;
+            border-radius: 6px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
         }
 
         canvas {
             image-rendering: pixelated;
         }
-
-        /* Custom Slider Styling */
-        input[type=range] {
-            -webkit-appearance: none;
-            width: 100%;
-            background: transparent;
-        }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 20px;
-            width: 20px;
-            border-radius: 50%;
-            background: #a855f7;
-            cursor: pointer;
-            margin-top: -8px;
-            box-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 4px;
-            cursor: pointer;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 2px;
-        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-center items-center p-2 md:p-6 overflow-x-hidden select-none">
+<body class="min-h-screen flex flex-col justify-between items-center p-2 md:p-6 overflow-x-hidden select-none">
 
-    <!-- Main Game Container -->
-    <main class="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        <!-- Player 1 Panel (Left) - Next Only -->
-        <div class="lg:col-span-3 glass-panel p-4 rounded-2xl glow-p1 flex flex-col gap-4 items-center justify-center order-2 lg:order-1 h-32 lg:h-auto lg:mt-[100px]">
-            <div class="bg-slate-900/80 p-3 rounded-xl text-center border border-slate-800 w-24">
-                <span class="text-xs text-cyan-400 font-bold block mb-2">NEXT</span>
-                <canvas id="p1-next" width="70" height="70" class="mx-auto"></canvas>
+    <!-- Header -->
+    <header class="w-full max-w-5xl flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
+        <div class="flex items-center gap-3">
+            <div class="text-3xl text-cyan-400 font-black tracking-widest flex items-center gap-2">
+                <i class="fa-solid fa-cubes-stacked text-amber-500"></i>
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-orange-400">DUAL-FALL</span>
+                <span class="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700 font-mono">15x20</span>
             </div>
         </div>
 
-        <!-- Center Stage: Game Board + Stats -->
-        <div class="lg:col-span-6 flex flex-col items-center gap-4 order-1 lg:order-2">
+        <!-- Audio & Pause Controls -->
+        <div class="flex items-center gap-3">
+            <button id="sound-btn" class="glass-panel px-4 py-2 rounded-xl text-slate-300 hover:text-white transition flex items-center gap-2">
+                <i class="fa-solid fa-volume-high text-cyan-400" id="sound-icon"></i>
+                <span class="text-xs font-semibold uppercase">Sound</span>
+            </button>
+            <button id="pause-btn" class="glass-panel px-4 py-2 rounded-xl text-slate-300 hover:text-white transition flex items-center gap-2">
+                <i class="fa-solid fa-pause text-amber-400" id="pause-icon"></i>
+                <span class="text-xs font-semibold uppercase">Pause</span>
+            </button>
+            <button id="restart-btn" class="glass-panel px-4 py-2 rounded-xl text-slate-300 hover:text-white transition flex items-center gap-2">
+                <i class="fa-solid fa-rotate-right text-rose-400"></i>
+                <span class="text-xs font-semibold uppercase">Reset</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        
+        <!-- Player 1 Panel (Left) -->
+        <div class="lg:col-span-3 glass-panel p-4 rounded-2xl glow-p1 order-2 lg:order-1 flex flex-col gap-4">
+            <div class="flex justify-between items-center border-b border-cyan-500/20 pb-2">
+                <h2 class="text-cyan-400 font-bold text-lg flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-cyan-400 animate-pulse"></span> PLAYER 1
+                </h2>
+                <span class="text-xs text-slate-400 font-mono">WASD KEYS</span>
+            </div>
+
+            <!-- Hold & Next for P1 -->
+            <div class="grid grid-cols-2 gap-2">
+                <div class="bg-slate-900/80 p-2 rounded-xl text-center border border-slate-800">
+                    <span class="text-xs text-slate-400 block mb-1">HOLD [Shift/E]</span>
+                    <canvas id="p1-hold" width="70" height="70" class="mx-auto"></canvas>
+                </div>
+                <div class="bg-slate-900/80 p-2 rounded-xl text-center border border-slate-800">
+                    <span class="text-xs text-slate-400 block mb-1">NEXT</span>
+                    <canvas id="p1-next" width="70" height="70" class="mx-auto"></canvas>
+                </div>
+            </div>
+
+            <!-- Controls Diagram P1 -->
+            <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800/80">
+                <div class="text-xs text-slate-400 mb-2 text-center font-bold">P1 CONTROLS</div>
+                <div class="flex flex-col items-center gap-1">
+                    <div class="keycap w-8 h-8 text-cyan-400 text-sm">W</div>
+                    <div class="flex gap-1">
+                        <div class="keycap w-8 h-8 text-cyan-400 text-sm">A</div>
+                        <div class="keycap w-8 h-8 text-cyan-400 text-sm">S</div>
+                        <div class="keycap w-8 h-8 text-cyan-400 text-sm">D</div>
+                    </div>
+                </div>
+                <div class="text-[10px] text-slate-400 mt-2 text-center">
+                    W: Rotate | A/D: Move | S: Fast Drop
+                </div>
+            </div>
+
+            <!-- Player 1 On-screen Mobile Controls -->
+            <div class="grid grid-cols-3 gap-1 lg:hidden pt-2">
+                <div></div>
+                <button id="p1-rot" class="bg-cyan-900/40 border border-cyan-500/40 p-3 rounded text-cyan-300 font-bold active:bg-cyan-600">W</button>
+                <div></div>
+                <button id="p1-left" class="bg-cyan-900/40 border border-cyan-500/40 p-3 rounded text-cyan-300 font-bold active:bg-cyan-600">A</button>
+                <button id="p1-down" class="bg-cyan-900/40 border border-cyan-500/40 p-3 rounded text-cyan-300 font-bold active:bg-cyan-600">S</button>
+                <button id="p1-right" class="bg-cyan-900/40 border border-cyan-500/40 p-3 rounded text-cyan-300 font-bold active:bg-cyan-600">D</button>
+            </div>
+        </div>
+
+        <!-- Center Stage: 15x20 Game Board + Stats -->
+        <div class="lg:col-span-6 flex flex-col items-center gap-3 order-1 lg:order-2">
             
-            <!-- Scoreboard Bar -->
-            <div class="w-full glass-panel px-6 py-4 rounded-2xl flex justify-between items-center">
+            <!-- Global Scoreboard Bar -->
+            <div class="w-full glass-panel px-4 py-3 rounded-2xl flex justify-between items-center relative">
+                <button id="mobile-swap-btn" class="lg:hidden absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 bg-indigo-600 border border-indigo-400 text-white p-2 rounded-full shadow-lg z-20 active:bg-indigo-500">
+                    <i class="fa-solid fa-right-left"></i>
+                </button>
                 <div class="text-center">
-                    <span class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">SCORE</span>
-                    <span id="score-val" class="pixel-font text-lg text-amber-400">000000</span>
+                    <span class="text-[10px] text-slate-400 uppercase tracking-widest block">SCORE</span>
+                    <span id="score-val" class="pixel-font text-xl text-amber-400">000000</span>
                 </div>
                 <div class="text-center">
-                    <span class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">LINES</span>
-                    <span id="lines-val" class="pixel-font text-lg text-emerald-400">0</span>
+                    <span class="text-[10px] text-slate-400 uppercase tracking-widest block">LINES</span>
+                    <span id="lines-val" class="pixel-font text-xl text-emerald-400">0</span>
                 </div>
                 <div class="text-center">
-                    <span class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">LEVEL</span>
-                    <span id="level-val" class="pixel-font text-lg text-purple-400">1</span>
+                    <span class="text-[10px] text-slate-400 uppercase tracking-widest block">LEVEL</span>
+                    <span id="level-val" class="pixel-font text-xl text-purple-400">1</span>
                 </div>
             </div>
 
@@ -102,16 +162,10 @@
                 <canvas id="tetris-canvas" width="360" height="480" class="rounded-xl bg-slate-950/90"></canvas>
 
                 <!-- Start / Game Over Overlay -->
-                <div id="game-overlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md rounded-xl flex flex-col justify-center items-center p-6 text-center z-10 transition-all duration-300">
-                    <h1 id="overlay-title" class="pixel-font text-2xl text-amber-400 mb-2 leading-tight">DUAL TETRIS</h1>
-                    <p id="overlay-desc" class="text-xs text-slate-300 max-w-xs mb-6">Space to swap shapes.</p>
+                <div id="game-overlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm rounded-xl flex flex-col justify-center items-center p-6 text-center z-10 transition-all duration-300">
+                    <h1 id="overlay-title" class="pixel-font text-2xl md:text-3xl text-amber-400 mb-3 leading-tight">DUAL FALL<br><span class="text-xs text-cyan-400">15 x 20 TETRIS</span></h1>
+                    <p id="overlay-desc" class="text-sm text-slate-300 max-w-xs mb-6">Control 2 pieces simultaneously! Press SPACE to swap pieces positions.</p>
                     
-                    <!-- Level Selector -->
-                    <div class="mb-6 w-3/4 max-w-[200px]">
-                        <label for="start-level" class="block text-xs text-slate-400 mb-2 font-bold uppercase tracking-wider">Starting Level: <span id="level-display" class="text-purple-400 text-sm ml-1">1</span></label>
-                        <input type="range" id="start-level" min="1" max="15" value="1" class="w-full">
-                    </div>
-
                     <button id="start-btn" class="px-8 py-3 bg-gradient-to-r from-cyan-500 via-purple-500 to-orange-500 hover:from-cyan-400 hover:to-orange-400 text-slate-950 font-black tracking-wider text-base rounded-xl transition transform hover:scale-105 shadow-lg shadow-purple-500/20 active:scale-95">
                         START GAME
                     </button>
@@ -119,22 +173,67 @@
             </div>
         </div>
 
-        <!-- Player 2 Panel (Right) - Next Only -->
-        <div class="lg:col-span-3 glass-panel p-4 rounded-2xl glow-p2 flex flex-col gap-4 items-center justify-center order-3 h-32 lg:h-auto lg:mt-[100px]">
-            <div class="bg-slate-900/80 p-3 rounded-xl text-center border border-slate-800 w-24">
-                <span class="text-xs text-orange-400 font-bold block mb-2">NEXT</span>
-                <canvas id="p2-next" width="70" height="70" class="mx-auto"></canvas>
+        <!-- Player 2 Panel (Right) -->
+        <div class="lg:col-span-3 glass-panel p-4 rounded-2xl glow-p2 order-3 flex flex-col gap-4">
+            <div class="flex justify-between items-center border-b border-orange-500/20 pb-2">
+                <h2 class="text-orange-400 font-bold text-lg flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-orange-400 animate-pulse"></span> PLAYER 2
+                </h2>
+                <span class="text-xs text-slate-400 font-mono">ARROW KEYS</span>
+            </div>
+
+            <!-- Hold & Next for P2 -->
+            <div class="grid grid-cols-2 gap-2">
+                <div class="bg-slate-900/80 p-2 rounded-xl text-center border border-slate-800">
+                    <span class="text-xs text-slate-400 block mb-1">HOLD [0 / /]</span>
+                    <canvas id="p2-hold" width="70" height="70" class="mx-auto"></canvas>
+                </div>
+                <div class="bg-slate-900/80 p-2 rounded-xl text-center border border-slate-800">
+                    <span class="text-xs text-slate-400 block mb-1">NEXT</span>
+                    <canvas id="p2-next" width="70" height="70" class="mx-auto"></canvas>
+                </div>
+            </div>
+
+            <!-- Controls Diagram P2 -->
+            <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800/80">
+                <div class="text-xs text-slate-400 mb-2 text-center font-bold">P2 CONTROLS</div>
+                <div class="flex flex-col items-center gap-1">
+                    <div class="keycap w-8 h-8 text-orange-400 text-sm"><i class="fa-solid fa-arrow-up"></i></div>
+                    <div class="flex gap-1">
+                        <div class="keycap w-8 h-8 text-orange-400 text-sm"><i class="fa-solid fa-arrow-left"></i></div>
+                        <div class="keycap w-8 h-8 text-orange-400 text-sm"><i class="fa-solid fa-arrow-down"></i></div>
+                        <div class="keycap w-8 h-8 text-orange-400 text-sm"><i class="fa-solid fa-arrow-right"></i></div>
+                    </div>
+                </div>
+                <div class="text-[10px] text-slate-400 mt-2 text-center">
+                    UP: Rotate | LEFT/RIGHT: Move | DOWN: Fast Drop
+                </div>
+            </div>
+
+            <!-- Player 2 On-screen Mobile Controls -->
+            <div class="grid grid-cols-3 gap-1 lg:hidden pt-2">
+                <div></div>
+                <button id="p2-rot" class="bg-orange-900/40 border border-orange-500/40 p-3 rounded text-orange-300 font-bold active:bg-orange-600"><i class="fa-solid fa-arrow-up"></i></button>
+                <div></div>
+                <button id="p2-left" class="bg-orange-900/40 border border-orange-500/40 p-3 rounded text-orange-300 font-bold active:bg-orange-600"><i class="fa-solid fa-arrow-left"></i></button>
+                <button id="p2-down" class="bg-orange-900/40 border border-orange-500/40 p-3 rounded text-orange-300 font-bold active:bg-orange-600"><i class="fa-solid fa-arrow-down"></i></button>
+                <button id="p2-right" class="bg-orange-900/40 border border-orange-500/40 p-3 rounded text-orange-300 font-bold active:bg-orange-600"><i class="fa-solid fa-arrow-right"></i></button>
             </div>
         </div>
 
     </main>
 
+    <!-- Footer Rules -->
+    <footer class="mt-4 text-xs text-slate-500 text-center max-w-xl">
+        <p>Both shapes drop simultaneously into the 15x20 field. Press SPACE to swap places. Clear full rows for points.</p>
+    </footer>
+
     <!-- JavaScript Game Logic -->
     <script>
+        // --- CONSTANTS & CONFIGURATION ---
         const COLS = 15;
         const ROWS = 20;
         const BLOCK_SIZE = 24;
-        const BASE_DROP_INTERVAL = 266; // Approximately 3x faster than previous 800
 
         const SHAPES = {
             'I': [[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]],
@@ -156,22 +255,124 @@
             'O': '#fbbf24', 'S': '#ec4899', 'T': '#f43f5e', 'Z': '#dc2626'
         };
 
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playMove() {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.05);
+            }
+
+            playRotate() {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(500, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            }
+
+            playLock() {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(60, this.ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.1);
+            }
+
+            playClear() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const notes = [261.63, 329.63, 392.00, 523.25];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.15, now + idx * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.15);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + idx * 0.06);
+                    osc.stop(now + idx * 0.06 + 0.15);
+                });
+            }
+
+            playGameOver() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.linearRampToValueAtTime(40, now + 0.6);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.6);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.6);
+            }
+        }
+
+        const sound = new SoundFX();
+
         const canvas = document.getElementById('tetris-canvas');
         const ctx = canvas.getContext('2d');
+
+        const p1HoldCanvas = document.getElementById('p1-hold');
+        const p1HoldCtx = p1HoldCanvas.getContext('2d');
         const p1NextCanvas = document.getElementById('p1-next');
         const p1NextCtx = p1NextCanvas.getContext('2d');
+
+        const p2HoldCanvas = document.getElementById('p2-hold');
+        const p2HoldCtx = p2HoldCanvas.getContext('2d');
         const p2NextCanvas = document.getElementById('p2-next');
         const p2NextCtx = p2NextCanvas.getContext('2d');
 
-        let grid = [];
+        let grid = createGrid(ROWS, COLS);
         let score = 0;
         let lines = 0;
         let level = 1;
-        let startingLevel = 1;
         let gameOver = false;
+        let isPaused = false;
         let gameRunning = false;
+
         let lastTime = 0;
-        let dropInterval = BASE_DROP_INTERVAL;
+        let dropInterval = 800;
+
         let clearingLines = [];
         let clearAnimTimer = 0;
 
@@ -188,6 +389,8 @@
                 this.color = '#ffffff';
 
                 this.nextType = '';
+                this.holdType = null;
+                this.canHold = true;
                 
                 this.dropCounter = 0;
                 this.softDrop = false;
@@ -209,6 +412,8 @@
             }
 
             reset() {
+                this.holdType = null;
+                this.canHold = true;
                 this.softDrop = false;
                 this.dropCounter = 0;
                 this.nextType = this.getRandomPieceType();
@@ -218,6 +423,21 @@
             fetchNextPiece() {
                 this.spawnPiece(this.nextType);
                 this.nextType = this.getRandomPieceType();
+                this.canHold = true;
+            }
+
+            hold() {
+                if (!this.canHold) return;
+                sound.playRotate();
+                if (!this.holdType) {
+                    this.holdType = this.type;
+                    this.fetchNextPiece();
+                } else {
+                    const temp = this.type;
+                    this.spawnPiece(this.holdType);
+                    this.holdType = temp;
+                }
+                this.canHold = false;
             }
         }
 
@@ -230,11 +450,6 @@
                 matrix.push(new Array(c).fill(0));
             }
             return matrix;
-        }
-
-        function calculateDropInterval(currentLvl) {
-            // Speed curve: starts at BASE_DROP_INTERVAL, gets faster as level increases
-            return Math.max(80, BASE_DROP_INTERVAL * Math.pow(0.85, currentLvl - 1));
         }
 
         function collide(player, otherPlayer, offsetX = 0, offsetY = 0, customMatrix = null) {
@@ -252,7 +467,6 @@
                         if (boardX < 0 || boardX >= COLS || boardY >= ROWS) return true;
                         if (boardY >= 0 && grid[boardY][boardX] !== 0) return true;
 
-                        // Check collision against the other moving piece
                         if (otherPlayer && otherPlayer.matrix) {
                             const omX = boardX - otherPlayer.x;
                             const omY = boardY - otherPlayer.y;
@@ -285,6 +499,7 @@
         function playerMove(player, otherPlayer, dir) {
             if (!collide(player, otherPlayer, dir, 0)) {
                 player.x += dir;
+                sound.playMove();
             }
         }
 
@@ -305,6 +520,7 @@
                     return;
                 }
             }
+            sound.playRotate();
         }
 
         function getGhostY(player, otherPlayer) {
@@ -325,6 +541,7 @@
             } else {
                 if (collide(p, null, 0, 1)) {
                     lockPiece(p);
+                    sound.playLock();
                     checkLineClears();
                     p.fetchNextPiece();
                     
@@ -335,39 +552,18 @@
             }
         }
 
-        function swapShapes() {
-            // Swap only the shapes, colors, and types, NOT the coordinates.
-            // This means the left controls always control the left piece, right controls right piece.
-            
-            // Check if swapped shapes fit at current locations
-            const p1Fits = !collide(p1, null, 0, 0, p2.matrix);
-            const p2Fits = !collide(p2, null, 0, 0, p1.matrix);
-            
-            // Note: overlap check is slightly more complex if matrices change size significantly,
-            // but since they swap in place, if they didn't overlap before and fit the grid, 
-            // they mostly shouldn't overlap now unless they rotate into each other.
-            // For simplicity, we check if they fit the board first.
+        function swapPieces() {
+            const p1Clone = { x: p2.x, y: p2.y, matrix: p1.matrix };
+            const p2Clone = { x: p1.x, y: p1.y, matrix: p2.matrix };
 
-            if (p1Fits && p2Fits) {
-                // Temporarily apply to check overlap
-                const tempP1Mat = p1.matrix;
-                p1.matrix = p2.matrix;
-                const overlap = collide(p2, p1, 0, 0, tempP1Mat);
-                p1.matrix = tempP1Mat; // revert
+            const p1Fits = !collide(p1Clone, null, 0, 0);
+            const p2Fits = !collide(p2Clone, null, 0, 0);
+            const overlap = collide(p1Clone, p2Clone, 0, 0);
 
-                if (!overlap) {
-                    const tempMatrix = p1.matrix;
-                    const tempColor = p1.color;
-                    const tempType = p1.type;
-
-                    p1.matrix = p2.matrix;
-                    p1.color = p1.palette[p2.type] || p2.color; // Recolor based on left palette if possible
-                    p1.type = p2.type;
-
-                    p2.matrix = tempMatrix;
-                    p2.color = p2.palette[tempType] || tempColor; // Recolor based on right palette
-                    p2.type = tempType;
-                }
+            if (p1Fits && p2Fits && !overlap) {
+                const tempX = p1.x; p1.x = p2.x; p2.x = tempX;
+                const tempY = p1.y; p1.y = p2.y; p2.y = tempY;
+                sound.playRotate();
             }
         }
 
@@ -387,15 +583,15 @@
             if (cleared.length > 0) {
                 clearingLines = cleared;
                 clearAnimTimer = 12; 
+                sound.playClear();
 
                 const basePoints = [0, 100, 300, 500, 800, 1200, 1600, 2000];
                 const pts = basePoints[Math.min(cleared.length, 7)] || (cleared.length * 300);
                 score += pts * level;
                 lines += cleared.length;
 
-                // Level up based on lines cleared + starting level offset
-                level = startingLevel + Math.floor(lines / 10);
-                dropInterval = calculateDropInterval(level);
+                level = Math.floor(lines / 10) + 1;
+                dropInterval = Math.max(80, 1000 * Math.pow(0.85, level - 1));
 
                 updateScoreUI();
                 return true;
@@ -411,34 +607,34 @@
             clearingLines = [];
         }
 
-        function drawBlock(context, x, y, color, isGhost = false, scale = BLOCK_SIZE) {
+        function drawBlock(ctx, x, y, color, isGhost = false, scale = BLOCK_SIZE) {
             const px = x * scale;
             const py = y * scale;
 
             if (isGhost) {
-                context.strokeStyle = color;
-                context.lineWidth = 1.5;
-                context.strokeRect(px + 1, py + 1, scale - 2, scale - 2);
-                context.fillStyle = color;
-                context.globalAlpha = 0.15;
-                context.fillRect(px + 1, py + 1, scale - 2, scale - 2);
-                context.globalAlpha = 1.0;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(px + 1, py + 1, scale - 2, scale - 2);
+                ctx.fillStyle = color;
+                ctx.globalAlpha = 0.15;
+                ctx.fillRect(px + 1, py + 1, scale - 2, scale - 2);
+                ctx.globalAlpha = 1.0;
                 return;
             }
 
-            context.fillStyle = color;
-            context.fillRect(px, py, scale, scale);
+            ctx.fillStyle = color;
+            ctx.fillRect(px, py, scale, scale);
 
-            context.fillStyle = 'rgba(255, 255, 255, 0.35)';
-            context.fillRect(px, py, scale, 3);
-            context.fillRect(px, py, 3, scale);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+            ctx.fillRect(px, py, scale, 3);
+            ctx.fillRect(px, py, 3, scale);
 
-            context.fillStyle = 'rgba(0, 0, 0, 0.35)';
-            context.fillRect(px, py + scale - 3, scale, 3);
-            context.fillRect(px + scale - 3, py, 3, scale);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+            ctx.fillRect(px, py + scale - 3, scale, 3);
+            ctx.fillRect(px + scale - 3, py, 3, scale);
 
-            context.strokeStyle = 'rgba(0,0,0,0.15)';
-            context.strokeRect(px, py, scale, scale);
+            ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+            ctx.strokeRect(px, py, scale, scale);
         }
 
         function drawGridBackground() {
@@ -469,31 +665,6 @@
             ctx.lineTo(7.5 * BLOCK_SIZE, canvas.height);
             ctx.stroke();
             ctx.setLineDash([]);
-        }
-
-        function drawMatrix(context, matrix, offsetX, offsetY, color, isGhost = false, scale = BLOCK_SIZE) {
-            if (!matrix) return;
-            matrix.forEach((row, r) => {
-                row.forEach((val, c) => {
-                    if (val !== 0) {
-                        drawBlock(context, offsetX + c, offsetY + r, color, isGhost, scale);
-                    }
-                });
-            });
-        }
-
-        function drawPreview(context, type, palette) {
-            context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-            if (!type) return;
-
-            const matrix = SHAPES[type];
-            const color = palette[type];
-            const miniScale = 14;
-
-            const offsetX = (context.canvas.width / miniScale - matrix[0].length) / 2;
-            const offsetY = (context.canvas.height / miniScale - matrix.length) / 2;
-
-            drawMatrix(context, matrix, offsetX, offsetY, color, false, miniScale);
         }
 
         function draw() {
@@ -527,15 +698,41 @@
                 }
             }
 
+            drawPreview(p1HoldCtx, p1.holdType, P1_COLORS);
             drawPreview(p1NextCtx, p1.nextType, P1_COLORS);
+            drawPreview(p2HoldCtx, p2.holdType, P2_COLORS);
             drawPreview(p2NextCtx, p2.nextType, P2_COLORS);
+        }
+
+        function drawMatrix(context, matrix, offsetX, offsetY, color, isGhost = false, scale = BLOCK_SIZE) {
+            matrix.forEach((row, r) => {
+                row.forEach((val, c) => {
+                    if (val !== 0) {
+                        drawBlock(context, offsetX + c, offsetY + r, color, isGhost, scale);
+                    }
+                });
+            });
+        }
+
+        function drawPreview(context, type, palette) {
+            context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+            if (!type) return;
+
+            const matrix = SHAPES[type];
+            const color = palette[type];
+            const miniScale = 14;
+
+            const offsetX = (context.canvas.width / miniScale - matrix[0].length) / 2;
+            const offsetY = (context.canvas.height / miniScale - matrix.length) / 2;
+
+            drawMatrix(context, matrix, offsetX, offsetY, color, false, miniScale);
         }
 
         function update(time = 0) {
             const deltaTime = time - lastTime;
             lastTime = time;
 
-            if (gameRunning && !gameOver) {
+            if (gameRunning && !isPaused && !gameOver) {
                 if (clearingLines.length > 0) {
                     clearAnimTimer--;
                     if (clearAnimTimer <= 0) {
@@ -567,14 +764,10 @@
             grid = createGrid(ROWS, COLS);
             score = 0;
             lines = 0;
-            
-            const levelSelect = document.getElementById('start-level');
-            startingLevel = parseInt(levelSelect.value, 10) || 1;
-            level = startingLevel;
-            
-            dropInterval = calculateDropInterval(level);
-            
+            level = 1;
+            dropInterval = 800;
             gameOver = false;
+            isPaused = false;
             gameRunning = true;
 
             p1.reset();
@@ -587,11 +780,30 @@
         function triggerGameOver() {
             gameOver = true;
             gameRunning = false;
+            sound.playGameOver();
 
             document.getElementById('overlay-title').innerHTML = `GAME OVER`;
             document.getElementById('overlay-desc').innerText = `Final Score: ${score} | Lines: ${lines}`;
             document.getElementById('start-btn').innerText = `PLAY AGAIN`;
             document.getElementById('game-overlay').classList.remove('hidden');
+        }
+
+        function togglePause() {
+            if (!gameRunning || gameOver) return;
+            isPaused = !isPaused;
+            const pauseBtn = document.getElementById('pause-btn');
+            const pauseIcon = document.getElementById('pause-icon');
+
+            if (isPaused) {
+                pauseIcon.className = "fa-solid fa-play text-emerald-400";
+                document.getElementById('overlay-title').innerHTML = `PAUSED`;
+                document.getElementById('overlay-desc').innerText = `Press Pause or ESC to Resume`;
+                document.getElementById('start-btn').innerText = `RESUME`;
+                document.getElementById('game-overlay').classList.remove('hidden');
+            } else {
+                pauseIcon.className = "fa-solid fa-pause text-amber-400";
+                document.getElementById('game-overlay').classList.add('hidden');
+            }
         }
 
         function updateScoreUI() {
@@ -600,27 +812,26 @@
             document.getElementById('level-val').innerText = level;
         }
 
-        // Level Slider Event
-        const startLevelSlider = document.getElementById('start-level');
-        const levelDisplay = document.getElementById('level-display');
-        startLevelSlider.addEventListener('input', (e) => {
-            levelDisplay.innerText = e.target.value;
-        });
-
         window.addEventListener('keydown', e => {
-            if (!gameRunning || gameOver) return;
+            sound.init();
+
+            if (e.key === 'Escape') {
+                togglePause();
+                return;
+            }
+
+            if (!gameRunning || isPaused || gameOver) return;
 
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
                 e.preventDefault();
             }
 
             if (e.code === 'Space') {
-                swapShapes();
+                swapPieces();
                 return;
             }
 
             switch (e.code) {
-                // P1 Controls (Left)
                 case 'KeyA':
                     playerMove(p1, p2, -1);
                     break;
@@ -636,8 +847,11 @@
                         p1.dropCounter = 50;
                     }
                     break;
+                case 'ShiftLeft':
+                case 'KeyE':
+                    p1.hold();
+                    break;
 
-                // P2 Controls (Right)
                 case 'ArrowLeft':
                     playerMove(p2, p1, -1);
                     break;
@@ -653,6 +867,11 @@
                         p2.dropCounter = 50;
                     }
                     break;
+                case 'Numpad0':
+                case 'Slash':
+                case 'KeyM':
+                    p2.hold();
+                    break;
             }
         });
 
@@ -661,10 +880,67 @@
             if (e.code === 'ArrowDown') p2.softDrop = false;
         });
 
-        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('start-btn').addEventListener('click', () => {
+            sound.init();
+            if (isPaused) {
+                togglePause();
+            } else {
+                startGame();
+            }
+        });
 
-        // Initial draw
-        drawGridBackground();
+        document.getElementById('pause-btn').addEventListener('click', togglePause);
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            sound.init();
+            startGame();
+        });
+
+        document.getElementById('sound-btn').addEventListener('click', () => {
+            sound.enabled = !sound.enabled;
+            const icon = document.getElementById('sound-icon');
+            icon.className = sound.enabled 
+                ? "fa-solid fa-volume-high text-cyan-400" 
+                : "fa-solid fa-volume-xmark text-slate-500";
+        });
+
+        const bindTouchBtn = (id, startAction, endAction = null) => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                sound.init();
+                if (gameRunning && !isPaused && !gameOver) startAction();
+            });
+            
+            if (endAction) {
+                btn.addEventListener('touchend', (e) => { e.preventDefault(); endAction(); });
+                btn.addEventListener('touchcancel', (e) => { e.preventDefault(); endAction(); });
+            } else {
+                btn.addEventListener('click', (e) => {
+                    sound.init();
+                    if (gameRunning && !isPaused && !gameOver) startAction();
+                });
+            }
+        };
+
+        bindTouchBtn('p1-rot', () => playerRotate(p1, p2));
+        bindTouchBtn('p1-left', () => playerMove(p1, p2, -1));
+        bindTouchBtn('p1-right', () => playerMove(p1, p2, 1));
+        bindTouchBtn('p1-down', 
+            () => { p1.softDrop = true; p1.dropCounter = 50; },
+            () => { p1.softDrop = false; }
+        );
+
+        bindTouchBtn('p2-rot', () => playerRotate(p2, p1));
+        bindTouchBtn('p2-left', () => playerMove(p2, p1, -1));
+        bindTouchBtn('p2-right', () => playerMove(p2, p1, 1));
+        bindTouchBtn('p2-down', 
+            () => { p2.softDrop = true; p2.dropCounter = 50; },
+            () => { p2.softDrop = false; }
+        );
+
+        bindTouchBtn('mobile-swap-btn', swapPieces);
+
         requestAnimationFrame(update);
     </script>
 </body>
