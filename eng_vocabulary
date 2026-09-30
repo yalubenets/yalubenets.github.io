@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Subject vocabulary quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F3F6F9;
+    --sheet: #FFFFFF;
+    --rule: #D6E2EE;
+    --margin: #E8A0A8;
+    --ink: #1B2A4A;
+    --ink-soft: #5A6478;
+    --blue: #24509A;
+    --blue-wash: #E3EAF6;
+    --red: #C4202E;
+    --green: #1F7A4D;
+    --green-wash: #E2F2E8;
+    --red-wash: #FBE7E9;
+    --highlight: #FFE55C;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #121826; --sheet: #1A2233; --rule: #26324A; --margin: #7A3440;
+      --ink: #E6ECF7; --ink-soft: #9AA6BD; --blue: #8FB0EB; --blue-wash: #22304D;
+      --red: #FF7A85; --green: #6FD39C; --green-wash: #183A2A; --red-wash: #3E1C23;
+      --highlight: #8A7A1E;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #121826; --sheet: #1A2233; --rule: #26324A; --margin: #7A3440;
+    --ink: #E6ECF7; --ink-soft: #9AA6BD; --blue: #8FB0EB; --blue-wash: #22304D;
+    --red: #FF7A85; --green: #6FD39C; --green-wash: #183A2A; --red-wash: #3E1C23;
+    --highlight: #8A7A1E;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Literata", Georgia, "Times New Roman", serif;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+  }
+  main { max-width: 42rem; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+
+  header h1 {
+    margin-bottom: 1.5rem !important;
+    font-weight: 800;
+    font-size: clamp(2rem, 6vw, 2.9rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.5rem;
+    color: var(--blue);
+  }
+  header p { margin: 0 0 2rem; color: var(--ink-soft); }
+
+  .progress { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.9rem; font-size: 0.95rem; color: var(--ink-soft); }
+  .bar { flex: 1; height: 6px; background: var(--rule); border-radius: 3px; overflow: hidden; }
+  .bar span { display: block; height: 100%; width: 0; background: var(--blue); transition: width .3s ease; }
+
+  /* exercise-book sheet */
+  .sheet {
+    position: relative;
+    background-color: var(--sheet);
+    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(2rem - 1px), var(--rule) calc(2rem - 1px), var(--rule) 2rem);
+    background-position: 0 1.2rem;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1.5rem 1.5rem 1.75rem 3.25rem;
+  }
+  .sheet::before {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 2.1rem;
+    width: 2px; background: var(--margin);
+  }
+  .kind { font-size: 0.9rem; color: var(--ink-soft); margin: 0 0 0.35rem; }
+  .question { font-size: 1.3rem; font-weight: 600; line-height: 1.45; margin: 0 0 1.25rem; }
+  .question q { font-style: italic; quotes: "‘" "’"; }
+
+  .options { display: grid; gap: 0.6rem; }
+  .opt {
+    display: flex; gap: 0.8rem; align-items: baseline;
+    width: 100%; text-align: left;
+    font: inherit; color: var(--ink);
+    background: var(--sheet);
+    border: 1.5px solid var(--rule);
+    border-radius: 4px;
+    padding: 0.7rem 0.9rem;
+    cursor: pointer;
+  }
+  .opt .key { font-weight: 600; color: var(--blue); min-width: 1.1rem; }
+  .opt:hover:not(:disabled) { border-color: var(--blue); background: var(--blue-wash); }
+  .opt:focus-visible, button:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+  .opt:disabled { cursor: default; }
+  .opt.right { border-color: var(--green); background: var(--green-wash); }
+  .opt.wrong { border-color: var(--red); background: var(--red-wash); text-decoration: line-through; text-decoration-color: var(--red); }
+  .opt.dim { opacity: 0.55; }
+
+  .mark {
+    font-family: "Caveat", "Comic Sans MS", cursive;
+    font-size: 1.75rem; line-height: 1.2;
+    margin: 1.1rem 0 0; min-height: 2.1rem;
+  }
+  .mark.good { color: var(--green); }
+  .mark.bad { color: var(--red); }
+  .explain { margin: 0.2rem 0 0; color: var(--ink-soft); font-size: 0.98rem; }
+  .explain strong { color: var(--ink); background: linear-gradient(transparent 55%, var(--highlight) 55%); font-weight: 600; }
+
+  .actions { display: flex; justify-content: flex-end; margin-top: 1.25rem; }
+  .btn {
+    font: inherit; font-weight: 600;
+    background: var(--blue); color: var(--sheet);
+    border: 0; border-radius: 4px;
+    padding: 0.7rem 1.4rem; cursor: pointer;
+  }
+  .btn[hidden] { display: none; }
+  .btn.ghost { background: transparent; color: var(--blue); border: 1.5px solid var(--blue); }
+
+  /* results */
+  .score {
+    font-family: "Caveat", "Comic Sans MS", cursive;
+    color: var(--red);
+    font-size: clamp(4rem, 16vw, 6rem);
+    line-height: 1;
+    margin: 0.25rem 0 0.25rem;
+    transform: rotate(-4deg);
+    display: inline-block;
+  }
+  .verdict { font-size: 1.2rem; font-weight: 600; margin: 0.5rem 0 1.25rem; }
+  .review h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+  .review dl { margin: 0; }
+  .review dt { font-weight: 600; color: var(--blue); margin-top: 0.75rem; }
+  .review dd { margin: 0; }
+  .end-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.75rem; }
+
+  .hint { margin-top: 1rem; font-size: 0.88rem; color: var(--ink-soft); }
+  @media (max-width: 480px) {
+    .sheet { padding-left: 2.5rem; padding-right: 1rem; }
+    .sheet::before { left: 1.5rem; }
+    .hint { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .bar span { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Subject vocabulary quiz</h1>
+  </header>
+
+  <section id="quiz">
+    <div class="progress">
+      <span id="count">Question 1 of 18</span>
+      <div class="bar" aria-hidden="true"><span id="fill"></span></div>
+      <span id="tally">0 correct</span>
+    </div>
+    <div class="sheet">
+      <p class="kind" id="kind"></p>
+      <p class="question" id="question"></p>
+      <div class="options" id="options" role="group" aria-labelledby="question"></div>
+      <p class="mark" id="mark" aria-live="polite"></p>
+      <p class="explain" id="explain"></p>
+      <div class="actions"><button class="btn" id="next" hidden>Next question</button></div>
+    </div>
+  </section>
+
+  <section id="results" hidden>
+    <div class="sheet">
+      <p class="kind">Your score</p>
+      <div class="score" id="score"></div>
+      <p class="verdict" id="verdict"></p>
+      <div class="review" id="review"></div>
+      <div class="end-actions">
+        <button class="btn" id="retry">Try again</button>
+        <button class="btn ghost" id="retryMissed" hidden>Practise the ones I missed</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const WORDS = {
+  "topic sentence": "the first sentence in a paragraph, often used to explain the key idea",
+  "chronologically": "organised in linear time",
+  "flashback": "when the narrator of a story jumps out of the present in order to describe an event which happened in the past (often in the form of memories)",
+  "synonyms": "words that share the same meaning as other words; for example, ‘quick’ might be a synonym for ‘fast’",
+  "connotations": "ideas linked to a word; ideas that have become associated with a word",
+  "quotations": "words from a text",
+  "quotation marks": "punctuation marks used to indicate where you have quoted",
+  "direct speech": "words spoken by a character in a novel, play or poem",
+  "protagonist": "the main character",
+  "intention": "the impact the author wants their writing to have on the reader",
+  "rhetorical device": "using language in a certain way to achieve an effect"
+};
+const TERMS = Object.keys(WORDS);
+
+// Definition questions: show the definition, pick the word
+const defQs = TERMS.map(t => ({
+  kind: "Which word matches this definition?",
+  q: WORDS[t].charAt(0).toUpperCase() + WORDS[t].slice(1) + ".",
+  answer: t
+}));
+
+// Applied questions: use the word in context
+const useQs = [
+  { q: "A paragraph begins: <q>The storm changed everything for the village.</q> The rest of the paragraph explains how. What is that first sentence?", answer: "topic sentence" },
+  { q: "A story starts at breakfast, moves to lunch, and ends at bedtime, in that order. How are the events told?", answer: "chronologically" },
+  { q: "In the middle of a scene, the narrator suddenly remembers her seventh birthday, years earlier. What is this called?", answer: "flashback" },
+  { q: "<q>Huge</q>, <q>enormous</q> and <q>vast</q> all mean roughly the same thing. What are they?", answer: "synonyms" },
+  { q: "The word <q>home</q> makes many readers think of warmth, safety and family. These linked ideas are the word’s…", answer: "connotations" },
+  { q: "<q>Get out!</q> shouted Mrs Reed. The words Mrs Reed says aloud are an example of…", answer: "direct speech" },
+  { q: "The small marks ‘ ’ placed around words you have copied from a text are called…", answer: "quotation marks" },
+  { q: "In your essay you copy the words <q>cold and hungry</q> from the novel as evidence. What have you used?", answer: "quotations" },
+  { q: "The whole novel follows Jane, and the story is mostly about her. Jane is the…", answer: "protagonist" },
+  { q: "A writer describes a lonely orphan so that readers will feel sympathy for him. That hoped-for effect is the writer’s…", answer: "intention" },
+  { q: "A speaker repeats <q>We will not give up</q> three times to make the audience feel determined. Repetition like this is a…", answer: "rhetorical device" }
+].map(o => ({ ...o, kind: "Which word fits?" }));
+
+const ALL = [...defQs, ...useQs];
+
+function shuffle(a) {
+  a = a.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+// pick distractors, preferring words that are easy to confuse
+const CONFUSE = {
+  "quotations": ["quotation marks", "direct speech"],
+  "quotation marks": ["quotations", "direct speech"],
+  "direct speech": ["quotations", "quotation marks"],
+  "synonyms": ["connotations"],
+  "connotations": ["synonyms", "rhetorical device"],
+  "flashback": ["chronologically"],
+  "chronologically": ["flashback"],
+  "intention": ["rhetorical device"],
+  "rhetorical device": ["intention", "connotations"],
+  "topic sentence": ["quotations"],
+  "protagonist": ["direct speech"]
+};
+function optionsFor(answer) {
+  const pool = shuffle(CONFUSE[answer] || []).slice(0, 2);
+  const rest = shuffle(TERMS.filter(t => t !== answer && !pool.includes(t)));
+  while (pool.length < 3) pool.push(rest.shift());
+  return shuffle([answer, ...pool]);
+}
+
+const $ = id => document.getElementById(id);
+let deck = [], i = 0, correct = 0, missed = [], answered = false;
+
+function start(list) {
+  deck = shuffle(list).map(item => ({ ...item, opts: optionsFor(item.answer) }));
+  i = 0; correct = 0; missed = []; answered = false;
+  $("results").hidden = true; $("quiz").hidden = false;
+  render();
+}
+
+function render() {
+  const item = deck[i];
+  answered = false;
+  $("count").textContent = `Question ${i + 1} of ${deck.length}`;
+  $("tally").textContent = `${correct} correct`;
+  $("fill").style.width = `${(i / deck.length) * 100}%`;
+  $("kind").textContent = item.kind;
+  $("question").innerHTML = item.q;
+  $("mark").textContent = ""; $("mark").className = "mark";
+  $("explain").innerHTML = "";
+  $("next").hidden = true;
+  const box = $("options"); box.innerHTML = "";
+  item.opts.forEach((t, n) => {
+    const b = document.createElement("button");
+    b.className = "opt"; b.type = "button";
+    b.innerHTML = `<span class="key">${n + 1}</span><span>${t}</span>`;
+    b.addEventListener("click", () => choose(t, b));
+    box.appendChild(b);
+  });
+  box.firstChild.focus({ preventScroll: true });
+}
+
+function choose(t, btn) {
+  if (answered) return;
+  answered = true;
+  const item = deck[i];
+  const good = t === item.answer;
+  [...$("options").children].forEach(b => {
+    b.disabled = true;
+    const label = b.lastChild.textContent;
+    if (label === item.answer) b.classList.add("right");
+    else if (b === btn) b.classList.add("wrong");
+    else b.classList.add("dim");
+  });
+  if (good) {
+    correct++;
+    $("mark").textContent = ["✓ Well done!", "✓ Spot on", "✓ Correct", "✓ Nice work"][Math.floor(Math.random() * 4)];
+    $("mark").className = "mark good";
+  } else {
+    if (!missed.includes(item.answer)) missed.push(item.answer);
+    $("mark").textContent = `✗ It's “${item.answer}”`;
+    $("mark").className = "mark bad";
+  }
+  $("tally").textContent = `${correct} correct`;
+  $("explain").innerHTML = `<strong>${item.answer}</strong>: ${WORDS[item.answer]}.`;
+  $("next").textContent = i === deck.length - 1 ? "See my score" : "Next question";
+  $("next").hidden = false;
+  $("next").focus({ preventScroll: true });
+}
+
+function next() {
+  i++;
+  if (i < deck.length) render(); else finish();
+}
+
+function finish() {
+  $("fill").style.width = "100%";
+  $("quiz").hidden = true; $("results").hidden = false;
+  $("score").textContent = `${correct}/${deck.length}`;
+  const pct = correct / deck.length;
+  $("verdict").textContent =
+    pct === 1 ? "Full marks. You know these words inside out." :
+    pct >= 0.8 ? "Great work. Just a couple to go over." :
+    pct >= 0.5 ? "Good start. Look over the words below and try again." :
+    "Keep going. Read through the words below, then have another go.";
+  const r = $("review");
+  if (missed.length) {
+    r.innerHTML = `<h2>Words to go over</h2><dl>${missed.map(t => `<dt>${t}</dt><dd>${WORDS[t]}</dd>`).join("")}</dl>`;
+    $("retryMissed").hidden = false;
+  } else {
+    r.innerHTML = "";
+    $("retryMissed").hidden = true;
+  }
+  $("retry").focus({ preventScroll: true });
+  window.scrollTo({ top: 0 });
+}
+
+$("next").addEventListener("click", next);
+$("retry").addEventListener("click", () => start(ALL));
+$("retryMissed").addEventListener("click", () => start(ALL.filter(q => missed.includes(q.answer))));
+
+document.addEventListener("keydown", e => {
+  if ($("quiz").hidden) return;
+  if (!answered && ["1","2","3","4"].includes(e.key)) {
+    const b = $("options").children[+e.key - 1];
+    if (b) b.click();
+  }
+});
+
+start(ALL);
+</script>
+</body>
+</html>
