@@ -6,24 +6,39 @@
 <title>Twin Tetris</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;500;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#dde2e6; --board:#eef1f3; --grid:rgba(40,55,70,.07); --locked:#9ba5ae;
-  --ink:#1e2a35; --muted:#7a8894; --a:#e8a300; --b:#2446d6; --veil:rgba(238,241,243,.84);
+  --bg:#dde2e6; --board:#eef1f3; --grid:rgba(40,55,70,.07);
+  --ink:#1e2a35; --muted:#7a8894; --veil:rgba(238,241,243,.84); --accent:#2d4fd6;
+  --c0:#2aa2c4; --c1:#e0a400; --c2:#8657d0; --c3:#36a061; --c4:#de4f3c; --c5:#2d4fd6; --c6:#ec7b25;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#1b2026; --board:#242b33; --grid:rgba(255,255,255,.045); --locked:#4b5560;
-    --ink:#e6ebef; --muted:#7d8994; --a:#ffbf2e; --b:#6f8cff; --veil:rgba(36,43,51,.86);
+    --bg:#1b2026; --board:#242b33; --grid:rgba(255,255,255,.045);
+    --ink:#e6ebef; --muted:#7d8994; --veil:rgba(36,43,51,.86); --accent:#6f8cff;
+    --c0:#45c3e6; --c1:#ffc233; --c2:#a17df0; --c3:#4fc57c; --c4:#ff6b55; --c5:#6f8cff; --c6:#ff9a45;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#1b2026; --board:#242b33; --grid:rgba(255,255,255,.045); --locked:#4b5560;
-  --ink:#e6ebef; --muted:#7d8994; --a:#ffbf2e; --b:#6f8cff; --veil:rgba(36,43,51,.86);
+  --bg:#1b2026; --board:#242b33; --grid:rgba(255,255,255,.045);
+  --ink:#e6ebef; --muted:#7d8994; --veil:rgba(36,43,51,.86); --accent:#6f8cff;
+  --c0:#45c3e6; --c1:#ffc233; --c2:#a17df0; --c3:#4fc57c; --c4:#ff6b55; --c5:#6f8cff; --c6:#ff9a45;
+}
+/* Sunlight: pure white, pure black, saturated fills with heavy outlines */
+:root[data-skin="contrast"]{
+  --bg:#ffffff; --board:#ffffff; --grid:rgba(0,0,0,.28);
+  --ink:#000000; --muted:#000000; --veil:rgba(255,255,255,.95); --accent:#000000;
+  --c0:#0077c8; --c1:#ffd400; --c2:#7a1fa2; --c3:#008c2e; --c4:#e00000; --c5:#0033cc; --c6:#ff6a00;
+}
+/* Arcade: neon on midnight */
+:root[data-skin="arcade"]{
+  --bg:#07021a; --board:#0b0424; --grid:rgba(0,240,255,.10);
+  --ink:#ffffff; --muted:#ff4fd8; --veil:rgba(7,2,26,.82); --accent:#00f0ff;
+  --c0:#00f0f0; --c1:#f0f000; --c2:#b000ff; --c3:#00f000; --c4:#ff0030; --c5:#1f5bff; --c6:#ff9900;
 }
 *,*::before,*::after{box-sizing:inherit}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -33,12 +48,13 @@ body{
   display:flex;align-items:center;justify-content:center;overflow:hidden;
   user-select:none;-webkit-user-select:none;
 }
-#wrap{display:flex;flex-direction:column;gap:18px;max-width:100%}
-#hud{display:flex;justify-content:space-between;align-items:flex-end}
+#wrap{position:relative;z-index:1;display:flex;flex-direction:column;gap:18px;max-width:100%}
+#hud{display:grid;grid-template-columns:1fr auto 1fr;align-items:end}
 .stat{display:flex;flex-direction:column;gap:2px}
 .stat.right{align-items:flex-end}
 .lbl{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.02em}
 .val{font-size:28px;font-weight:300;line-height:1;font-variant-numeric:tabular-nums}
+.skins{display:flex;gap:4px;padding-bottom:2px}
 #stage{position:relative;border-radius:10px;overflow:hidden}
 canvas{display:block}
 #menu{
@@ -52,21 +68,88 @@ canvas{display:block}
 #pickVal{font-size:72px;font-weight:300;line-height:1;font-variant-numeric:tabular-nums}
 button{
   appearance:none;border:0;background:none;color:var(--muted);cursor:pointer;padding:6px;border-radius:50%;
-  display:grid;place-items:center;transition:color .15s ease,transform .15s ease;
+  display:grid;place-items:center;transition:color .15s ease,transform .15s ease,background .15s ease;
 }
 button:hover{color:var(--ink)}
-button:focus-visible{outline:2px solid var(--b);outline-offset:2px}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.skin{width:34px;height:34px;padding:0}
+.skin svg{width:20px;height:20px}
+.skin[aria-pressed="true"]{color:var(--bg);background:var(--ink)}
 #play{width:64px;height:64px;background:var(--ink);color:var(--board)}
 #play:hover{transform:scale(1.06);color:var(--board)}
 #play svg{fill:currentColor;stroke:none;width:28px;height:28px;margin-left:3px}
-@media (prefers-reduced-motion: reduce){#menu,button{transition:none}}
+
+/* ---- contrast skin ---- */
+:root[data-skin="contrast"] .lbl{font-weight:800;font-size:13px}
+:root[data-skin="contrast"] .val{font-weight:800;font-size:32px}
+:root[data-skin="contrast"] #pickVal{font-weight:800}
+:root[data-skin="contrast"] #stage{border-radius:0;box-shadow:0 0 0 4px #000}
+:root[data-skin="contrast"] #menu{backdrop-filter:none;-webkit-backdrop-filter:none}
+:root[data-skin="contrast"] button svg{stroke-width:3}
+:root[data-skin="contrast"] .skin{box-shadow:inset 0 0 0 2px #000}
+
+/* ---- arcade skin ---- */
+:root[data-skin="arcade"] body{
+  font-family:"Press Start 2P",ui-monospace,monospace;
+  background:
+    radial-gradient(ellipse 80% 45% at 50% 100%, rgba(255,40,170,.55), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 50% 0%, rgba(80,0,255,.45), transparent 70%),
+    linear-gradient(#07021a, #1a0535 60%, #2a0640);
+}
+:root[data-skin="arcade"] body::before{
+  content:"";position:fixed;left:-50%;right:-50%;bottom:-10%;height:55%;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,60,210,.55) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(255,60,210,.55) 2px, transparent 2px);
+  background-size:60px 60px;
+  transform:perspective(420px) rotateX(62deg);transform-origin:50% 0;
+  mask-image:linear-gradient(transparent, #000 40%);-webkit-mask-image:linear-gradient(transparent, #000 40%);
+  animation:floor 1.2s linear infinite;
+}
+:root[data-skin="arcade"] body::after{
+  content:"";position:fixed;inset:0;z-index:2;pointer-events:none;
+  background:repeating-linear-gradient(to bottom, rgba(0,0,0,.22) 0 1px, transparent 1px 3px);
+  mix-blend-mode:multiply;
+}
+@keyframes floor{to{background-position:0 60px}}
+:root[data-skin="arcade"] .lbl{font-size:10px;color:#ff4fd8;text-shadow:0 0 8px #ff4fd8;letter-spacing:.08em}
+:root[data-skin="arcade"] .val{font-size:22px;font-weight:400;margin-top:8px}
+:root[data-skin="arcade"] #score{color:#00f0ff;text-shadow:0 0 6px #00f0ff,0 0 18px #00a8ff,3px 3px 0 #ff00aa}
+:root[data-skin="arcade"] #level{color:#fff200;text-shadow:0 0 6px #fff200,0 0 18px #ff9900,3px 3px 0 #ff00aa}
+:root[data-skin="arcade"] #stage{
+  border-radius:4px;
+  box-shadow:0 0 0 3px #ff2fd0,0 0 0 6px #1a0535,0 0 0 8px #00f0ff,0 0 30px 6px rgba(255,47,208,.6),0 0 90px 10px rgba(0,240,255,.35);
+}
+:root[data-skin="arcade"] #pickVal{font-size:44px;font-weight:400;color:#fff200;text-shadow:0 0 10px #fff200,4px 4px 0 #ff00aa;margin-top:10px}
+:root[data-skin="arcade"] button{color:#00f0ff;filter:drop-shadow(0 0 6px #00f0ff)}
+:root[data-skin="arcade"] button:hover{color:#fff}
+:root[data-skin="arcade"] .skin[aria-pressed="true"]{background:#ff2fd0;color:#fff;filter:drop-shadow(0 0 10px #ff2fd0)}
+:root[data-skin="arcade"] #play{background:#ff2fd0;color:#fff;border-radius:6px;filter:drop-shadow(0 0 14px #ff2fd0);animation:pulse 1s ease-in-out infinite alternate}
+@keyframes pulse{to{transform:scale(1.08)}}
+#stage.shake{animation:shake .28s linear}
+@keyframes shake{
+  0%,100%{transform:translate(0,0)} 20%{transform:translate(-6px,3px)} 40%{transform:translate(5px,-4px)}
+  60%{transform:translate(-4px,-2px)} 80%{transform:translate(3px,4px)}
+}
+@media (prefers-reduced-motion: reduce){
+  #menu,button{transition:none}
+  :root[data-skin="arcade"] body::before, :root[data-skin="arcade"] #play, #stage.shake{animation:none}
+}
 </style>
 </head>
 <body>
 <main id="wrap">
   <header id="hud">
     <div class="stat"><span class="lbl">score</span><span class="val" id="score">0</span></div>
+    <div class="skins">
+      <button class="skin" id="skinContrast" tabindex="-1" aria-pressed="false" aria-label="High-contrast theme">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"/></svg>
+      </button>
+      <button class="skin" id="skinArcade" tabindex="-1" aria-pressed="false" aria-label="Arcade theme">
+        <svg viewBox="0 0 24 24"><rect x="4" y="15" width="16" height="5" rx="1.5"/><path d="M12 15V8.5"/><circle cx="12" cy="6" r="2.8" fill="currentColor"/></svg>
+      </button>
+    </div>
     <div class="stat right"><span class="lbl">level</span><span class="val" id="level">5</span></div>
   </header>
   <div id="stage">
@@ -86,6 +169,7 @@ button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;s
   const W = 15, H = 20, MIN_LEVEL = 5, MAX_LEVEL = 20;
   const DAS = 160, ARR = 45, SOFT = 35;
   const GRAV = [800,720,640,560,480,400,330,270,220,180,150,125,105,90,78,68,60,52,45,38];
+  // I, O, T, S, Z, J, L  — index is the color index (--c0 … --c6)
   const SHAPES = [
     [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
     [[1,1],[1,1]],
@@ -96,20 +180,25 @@ button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;s
     [[0,0,1],[1,1,1],[0,0,0]],
   ];
   const $ = id => document.getElementById(id);
+  const root = document.documentElement;
   const cv = $('cv'), ctx = cv.getContext('2d');
-  const menu = $('menu'), scoreEl = $('score'), levelEl = $('level'), pickEl = $('pickVal');
+  const stage = $('stage'), menu = $('menu'), scoreEl = $('score'), levelEl = $('level'), pickEl = $('pickVal');
 
-  let cell = 28, colors = {};
+  let cell = 28, colors = { c: [] }, skin = 'default';
   // Slot 0 = left side, driven by WASD. Slot 1 = right side, driven by arrows.
+  // Board cells: 0 = empty, 1..7 = locked block of shape (value - 1).
   let board = emptyBoard(), pieces = [null, null], pending = [null, null];
-  let bag = [], score = 0, lines = 0, level = 5, startLevel = 5, state = 'menu';
+  let bag = [], score = 0, lines = 0, level = MIN_LEVEL, startLevel = MIN_LEVEL, state = 'menu';
+  let flashes = [], particles = [];
   const held = [0, 1].map(() => ({ L: false, R: false, D: false, dir: 0, das: 0 }));
 
   function emptyBoard() { return Array.from({ length: H }, () => Array(W).fill(0)); }
 
   function readColors() {
-    const s = getComputedStyle(document.documentElement);
-    for (const k of ['board', 'grid', 'locked', 'a', 'b']) colors[k] = s.getPropertyValue('--' + k).trim();
+    const s = getComputedStyle(root);
+    colors.board = s.getPropertyValue('--board').trim();
+    colors.grid = s.getPropertyValue('--grid').trim();
+    colors.c = [0,1,2,3,4,5,6].map(i => s.getPropertyValue('--c' + i).trim());
   }
 
   function nextShape() {
@@ -117,7 +206,8 @@ button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;s
       bag = [0,1,2,3,4,5,6];
       for (let i = bag.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [bag[i], bag[j]] = [bag[j], bag[i]]; }
     }
-    return SHAPES[bag.pop()].map(r => r.slice());
+    const k = bag.pop();
+    return { k, m: SHAPES[k].map(r => r.slice()) };
   }
 
   function rotateCW(m) { const n = m.length; return m.map((row, y) => row.map((_, x) => m[n - 1 - x][y])); }
@@ -137,7 +227,7 @@ button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;s
     return false;
   }
 
-  // Returns 'board' for walls/floor/stack, 'piece' for the other falling piece, or null.
+  // 'board' for walls/floor/stack, 'piece' for the other falling piece, or null.
   function collide(slot, m, x, y) {
     if (boardHit(m, x, y)) return 'board';
     const o = pieces[1 - slot];
@@ -148,7 +238,7 @@ button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;s
   }
 
   function trySpawn(slot) {
-    const m = pending[slot];
+    const { m, k } = pending[slot];
     const first = m.findIndex(r => r.some(Boolean));
     const base = Math.round((slot ? 10.5 : 3.5) - m.length / 2), y = -first;
     const r = collide(slot, m, base, y);
@@ -159,7 +249,7 @@ button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;s
       for (const dx of [-1, 1, -2, 2, -3, 3]) if (!collide(slot, m, base + dx, y)) { x = base + dx; break; }
       if (x === null) return; // wait for the other piece to move out of the way
     }
-    pieces[slot] = { m, x, y, slot, t: 0 };
+    pieces[slot] = { m, k, x, y, slot, t: 0 };
     pending[slot] = null;
   }
 
@@ -168,7 +258,7 @@ button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;s
     for (let r = 0; r < p.m.length; r++) for (let c = 0; c < p.m.length; c++) {
       if (!p.m[r][c]) continue;
       const cy = p.y + r;
-      if (cy < 0) above = true; else board[cy][p.x + c] = 1;
+      if (cy < 0) above = true; else board[cy][p.x + c] = p.k + 1;
     }
     pieces[p.slot] = null;
     if (above) { gameOver(); return; }
@@ -182,13 +272,31 @@ button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;s
   function clearLines() {
     let n = 0;
     for (let y = H - 1; y >= 0; y--) {
-      if (board[y].every(Boolean)) { board.splice(y, 1); board.unshift(Array(W).fill(0)); n++; y++; }
+      if (board[y].every(Boolean)) {
+        const row = y - n; // where the line was on screen
+        if (skin === 'arcade') burst(row, board[y]);
+        board.splice(y, 1); board.unshift(Array(W).fill(0)); n++; y++;
+      }
     }
     if (n) {
       lines += n;
       score += [0, 100, 300, 500, 800][Math.min(n, 4)] * level;
       level = startLevel + Math.floor(lines / 10);
       updateHud();
+      if (skin === 'arcade') {
+        stage.classList.remove('shake'); void stage.offsetWidth; stage.classList.add('shake');
+      }
+    }
+  }
+
+  function burst(row, cells) {
+    flashes.push({ y: row, life: 260 });
+    for (let x = 0; x < W; x++) for (let i = 0; i < 3; i++) {
+      particles.push({
+        x: x + 0.5, y: row + 0.5,
+        vx: (Math.random() - 0.5) * 0.03, vy: -Math.random() * 0.03,
+        c: cells[x] - 1, life: 500 + Math.random() * 400,
+      });
     }
   }
 
@@ -225,8 +333,8 @@ button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;s
   function overlap(m1, x1, y1, m2, x2, y2) {
     for (let r = 0; r < m1.length; r++) for (let c = 0; c < m1.length; c++) {
       if (!m1[r][c]) continue;
-      const rr2 = y1 + r - y2, cc2 = x1 + c - x2;
-      if (rr2 >= 0 && cc2 >= 0 && rr2 < m2.length && cc2 < m2.length && m2[rr2][cc2]) return true;
+      const r2 = y1 + r - y2, c2 = x1 + c - x2;
+      if (r2 >= 0 && c2 >= 0 && r2 < m2.length && c2 < m2.length && m2[r2][c2]) return true;
     }
     return false;
   }
@@ -247,13 +355,12 @@ button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;s
       for (const [dbx, dby] of KICKS) {
         const nbx = bx + dbx, nby = by + dby;
         if (boardHit(a.m, nbx, nby) || overlap(b.m, nax, nay, a.m, nbx, nby)) continue;
-        const am = a.m;
-        a.m = b.m; a.x = nax; a.y = nay;
-        b.m = am;  b.x = nbx; b.y = nby;
+        const am = a.m, ak = a.k;
+        a.m = b.m; a.k = b.k; a.x = nax; a.y = nay;
+        b.m = am;  b.k = ak;  b.x = nbx; b.y = nby;
         return;
       }
     }
-    // No room for the exchange: nothing happens.
   }
 
   const gravity = () => GRAV[Math.min(level, MAX_LEVEL) - 1];
@@ -261,7 +368,7 @@ button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;s
   function updateHud() { scoreEl.textContent = score; levelEl.textContent = level; }
 
   function start() {
-    board = emptyBoard(); bag = [];
+    board = emptyBoard(); bag = []; flashes = []; particles = [];
     pieces = [null, null]; pending = [nextShape(), nextShape()];
     score = 0; lines = 0; level = startLevel;
     held.forEach(h => { h.L = h.R = h.D = false; h.dir = 0; h.das = 0; });
@@ -279,6 +386,19 @@ button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;s
   }
 
   function setPick(v) { startLevel = Math.max(MIN_LEVEL, Math.min(MAX_LEVEL, v)); pickEl.textContent = startLevel; }
+
+  // ---------- themes ----------
+  function applySkin(s) {
+    skin = s;
+    if (s === 'default') delete root.dataset.skin; else root.dataset.skin = s;
+    $('skinContrast').setAttribute('aria-pressed', s === 'contrast');
+    $('skinArcade').setAttribute('aria-pressed', s === 'arcade');
+    try { localStorage.setItem('twin-tetris-skin', s); } catch (e) {}
+    if (s !== 'arcade') { flashes = []; particles = []; }
+    readColors();
+    resize();
+  }
+  const toggleSkin = s => applySkin(skin === s ? 'default' : s);
 
   // ---------- input ----------
   const KEYS = {
@@ -324,6 +444,8 @@ button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;s
   tap('dec', () => setPick(startLevel - 1));
   tap('inc', () => setPick(startLevel + 1));
   tap('play', start);
+  tap('skinContrast', () => toggleSkin('contrast'));
+  tap('skinArcade', () => toggleSkin('arcade'));
 
   // ---------- loop ----------
   let last = performance.now();
@@ -350,6 +472,10 @@ button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;s
         }
       }
     }
+    for (const f of flashes) f.life -= dt;
+    flashes = flashes.filter(f => f.life > 0);
+    for (const q of particles) { q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 0.00008 * dt; q.life -= dt; }
+    particles = particles.filter(q => q.life > 0);
     draw();
     requestAnimationFrame(frame);
   }
@@ -360,49 +486,107 @@ button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;s
     ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
     ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   }
-  function block(x, y, fill) {
-    const pad = Math.max(1, cell * 0.06), s = cell - pad * 2;
-    rr(x * cell + pad, y * cell + pad, s, s, cell * 0.2);
-    ctx.fillStyle = fill; ctx.fill();
+
+  function block(x, y, fill, active) {
+    const X = x * cell, Y = y * cell;
+    if (skin === 'arcade') {
+      const s = cell, b = Math.max(2, Math.round(cell * 0.17));
+      if (active) { ctx.shadowColor = fill; ctx.shadowBlur = cell * 0.7; }
+      ctx.fillStyle = fill; ctx.fillRect(X, Y, s, s);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255,255,255,.6)';
+      ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(X + s, Y); ctx.lineTo(X + s - b, Y + b);
+      ctx.lineTo(X + b, Y + b); ctx.lineTo(X + b, Y + s - b); ctx.lineTo(X, Y + s); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,.5)';
+      ctx.beginPath(); ctx.moveTo(X + s, Y); ctx.lineTo(X + s, Y + s); ctx.lineTo(X, Y + s);
+      ctx.lineTo(X + b, Y + s - b); ctx.lineTo(X + s - b, Y + s - b); ctx.lineTo(X + s - b, Y + b); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.75)';
+      ctx.fillRect(X + b + 1, Y + b + 1, Math.max(2, b * 0.9), Math.max(2, b * 0.9));
+    } else if (skin === 'contrast') {
+      const lw = Math.max(2, Math.round(cell * 0.1)), inset = 1 + lw / 2, s = cell - inset * 2;
+      rr(X + inset, Y + inset, s, s, cell * 0.1);
+      ctx.fillStyle = fill; ctx.fill();
+      ctx.strokeStyle = '#000'; ctx.lineWidth = lw; ctx.stroke();
+    } else {
+      const pad = Math.max(1, cell * 0.06), s = cell - pad * 2;
+      rr(X + pad, Y + pad, s, s, cell * 0.2);
+      ctx.fillStyle = fill; ctx.fill();
+    }
   }
-  function ghost(x, y, stroke) {
+
+  function ghost(x, y, col) {
     const pad = Math.max(2, cell * 0.12), s = cell - pad * 2;
-    rr(x * cell + pad, y * cell + pad, s, s, cell * 0.16);
-    ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke();
+    rr(x * cell + pad, y * cell + pad, s, s, skin === 'arcade' ? 2 : cell * 0.16);
+    if (skin === 'contrast') {
+      ctx.globalAlpha = 1; ctx.setLineDash([3, 3]); ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+    } else if (skin === 'arcade') {
+      ctx.globalAlpha = 0.7; ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.shadowColor = col; ctx.shadowBlur = 8;
+    } else {
+      ctx.globalAlpha = 0.45; ctx.strokeStyle = col; ctx.lineWidth = 1.5;
+    }
+    ctx.stroke();
+    ctx.setLineDash([]); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
   }
 
   function draw() {
     const bw = W * cell, bh = H * cell;
     ctx.clearRect(0, 0, bw, bh);
-    ctx.fillStyle = colors.board; ctx.fillRect(0, 0, bw, bh);
 
-    ctx.fillStyle = colors.grid;
-    const d = Math.max(1.5, cell * 0.07);
-    for (let y = 1; y < H; y++) for (let x = 1; x < W; x++) ctx.fillRect(x * cell - d / 2, y * cell - d / 2, d, d);
+    if (skin === 'arcade') {
+      const g = ctx.createLinearGradient(0, 0, 0, bh);
+      g.addColorStop(0, '#12052e'); g.addColorStop(1, '#040112');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, bw, bh);
+      ctx.strokeStyle = colors.grid; ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let x = 1; x < W; x++) { ctx.moveTo(x * cell + 0.5, 0); ctx.lineTo(x * cell + 0.5, bh); }
+      for (let y = 1; y < H; y++) { ctx.moveTo(0, y * cell + 0.5); ctx.lineTo(bw, y * cell + 0.5); }
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = colors.board; ctx.fillRect(0, 0, bw, bh);
+      ctx.fillStyle = colors.grid;
+      const d = skin === 'contrast' ? Math.max(2, cell * 0.1) : Math.max(1.5, cell * 0.07);
+      for (let y = 1; y < H; y++) for (let x = 1; x < W; x++) ctx.fillRect(x * cell - d / 2, y * cell - d / 2, d, d);
+    }
 
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (board[y][x]) block(x, y, colors.locked);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (board[y][x]) block(x, y, colors.c[board[y][x] - 1], false);
 
     for (let slot = 0; slot < 2; slot++) {
       const p = pieces[slot];
       if (!p) continue;
-      const col = slot === 0 ? colors.a : colors.b;
+      const col = colors.c[p.k];
       let gy = p.y;
       while (!boardHit(p.m, p.x, gy + 1)) gy++;
       if (gy > p.y && state === 'play') {
-        ctx.globalAlpha = 0.45;
         for (let r = 0; r < p.m.length; r++) for (let c = 0; c < p.m.length; c++)
           if (p.m[r][c] && gy + r >= 0) ghost(p.x + c, gy + r, col);
-        ctx.globalAlpha = 1;
       }
       for (let r = 0; r < p.m.length; r++) for (let c = 0; c < p.m.length; c++)
-        if (p.m[r][c] && p.y + r >= 0) block(p.x + c, p.y + r, col);
+        if (p.m[r][c] && p.y + r >= 0) block(p.x + c, p.y + r, col, true);
+    }
+
+    if (skin === 'arcade') {
+      for (const f of flashes) {
+        ctx.globalAlpha = Math.max(0, f.life / 260);
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#ff2fd0'; ctx.shadowBlur = cell;
+        ctx.fillRect(0, f.y * cell, bw, cell);
+      }
+      ctx.shadowBlur = 0;
+      const sz = Math.max(3, cell * 0.22);
+      for (const q of particles) {
+        ctx.globalAlpha = Math.min(1, q.life / 400);
+        ctx.fillStyle = colors.c[q.c] || '#fff';
+        ctx.fillRect(q.x * cell - sz / 2, q.y * cell - sz / 2, sz, sz);
+      }
+      ctx.globalAlpha = 1;
     }
   }
 
   function resize() {
     const hud = $('hud').offsetHeight + 18;
-    const availH = document.body.clientHeight - hud - 40;
-    const availW = document.body.clientWidth - 32;
+    const margin = skin === 'arcade' ? 64 : 40;
+    const availH = document.body.clientHeight - hud - margin;
+    const availW = document.body.clientWidth - 40;
     cell = Math.max(10, Math.floor(Math.min(availH / H, availW / W)));
     const dpr = window.devicePixelRatio || 1;
     cv.width = W * cell * dpr; cv.height = H * cell * dpr;
@@ -412,12 +596,17 @@ button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;s
     draw();
   }
 
-  readColors();
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColors(); draw(); });
-  new MutationObserver(() => { readColors(); draw(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  new MutationObserver(() => { readColors(); draw(); }).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
   addEventListener('resize', resize);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(resize);
-  resize();
+  if (document.fonts) {
+    document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', resize);
+    document.fonts.ready.then(resize);
+  }
+
+  let saved = 'default';
+  try { saved = localStorage.getItem('twin-tetris-skin') || 'default'; } catch (e) {}
+  applySkin(['default', 'contrast', 'arcade'].includes(saved) ? saved : 'default');
   updateHud();
   requestAnimationFrame(frame);
 })();
