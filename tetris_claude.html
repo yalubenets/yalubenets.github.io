@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Twin Tetris</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#dde2e6; --board:#eef1f3; --grid:rgba(40,55,70,.07); --locked:#9ba5ae;
+  --ink:#1e2a35; --muted:#7a8894; --a:#e8a300; --b:#2446d6; --veil:rgba(238,241,243,.84);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b2026; --board:#242b33; --grid:rgba(255,255,255,.045); --locked:#4b5560;
+    --ink:#e6ebef; --muted:#7d8994; --a:#ffbf2e; --b:#6f8cff; --veil:rgba(36,43,51,.86);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b2026; --board:#242b33; --grid:rgba(255,255,255,.045); --locked:#4b5560;
+  --ink:#e6ebef; --muted:#7d8994; --a:#ffbf2e; --b:#6f8cff; --veil:rgba(36,43,51,.86);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  user-select:none;-webkit-user-select:none;
+}
+#wrap{display:flex;flex-direction:column;gap:18px;max-width:100%}
+#hud{display:flex;justify-content:space-between;align-items:flex-end}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat.right{align-items:flex-end}
+.lbl{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.02em}
+.val{font-size:28px;font-weight:300;line-height:1;font-variant-numeric:tabular-nums}
+#stage{position:relative;border-radius:10px;overflow:hidden}
+canvas{display:block}
+#menu{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;
+  background:var(--veil);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  transition:opacity .25s ease;
+}
+#menu.hidden{opacity:0;pointer-events:none}
+.picker{display:flex;align-items:center;gap:14px}
+.pick{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:96px}
+#pickVal{font-size:72px;font-weight:300;line-height:1;font-variant-numeric:tabular-nums}
+button{
+  appearance:none;border:0;background:none;color:var(--muted);cursor:pointer;padding:6px;border-radius:50%;
+  display:grid;place-items:center;transition:color .15s ease,transform .15s ease;
+}
+button:hover{color:var(--ink)}
+button:focus-visible{outline:2px solid var(--b);outline-offset:2px}
+button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#play{width:64px;height:64px;background:var(--ink);color:var(--board)}
+#play:hover{transform:scale(1.06);color:var(--board)}
+#play svg{fill:currentColor;stroke:none;width:28px;height:28px;margin-left:3px}
+@media (prefers-reduced-motion: reduce){#menu,button{transition:none}}
+</style>
+</head>
+<body>
+<main id="wrap">
+  <header id="hud">
+    <div class="stat"><span class="lbl">score</span><span class="val" id="score">0</span></div>
+    <div class="stat right"><span class="lbl">level</span><span class="val" id="level">5</span></div>
+  </header>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="menu">
+      <div class="picker">
+        <button id="dec" tabindex="-1" aria-label="Lower starting level"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <div class="pick"><span class="lbl">level</span><span id="pickVal">5</span></div>
+        <button id="inc" tabindex="-1" aria-label="Higher starting level"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
+      <button id="play" tabindex="-1" aria-label="Start game"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z"/></svg></button>
+    </div>
+  </div>
+</main>
+<script>
+(() => {
+  const W = 15, H = 20, MIN_LEVEL = 5, MAX_LEVEL = 20;
+  const DAS = 160, ARR = 45, SOFT = 35;
+  const GRAV = [800,720,640,560,480,400,330,270,220,180,150,125,105,90,78,68,60,52,45,38];
+  const SHAPES = [
+    [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+    [[1,1],[1,1]],
+    [[0,1,0],[1,1,1],[0,0,0]],
+    [[0,1,1],[1,1,0],[0,0,0]],
+    [[1,1,0],[0,1,1],[0,0,0]],
+    [[1,0,0],[1,1,1],[0,0,0]],
+    [[0,0,1],[1,1,1],[0,0,0]],
+  ];
+  const $ = id => document.getElementById(id);
+  const cv = $('cv'), ctx = cv.getContext('2d');
+  const menu = $('menu'), scoreEl = $('score'), levelEl = $('level'), pickEl = $('pickVal');
+
+  let cell = 28, colors = {};
+  // Slot 0 = left side, driven by WASD. Slot 1 = right side, driven by arrows.
+  let board = emptyBoard(), pieces = [null, null], pending = [null, null];
+  let bag = [], score = 0, lines = 0, level = 5, startLevel = 5, state = 'menu';
+  const held = [0, 1].map(() => ({ L: false, R: false, D: false, dir: 0, das: 0 }));
+
+  function emptyBoard() { return Array.from({ length: H }, () => Array(W).fill(0)); }
+
+  function readColors() {
+    const s = getComputedStyle(document.documentElement);
+    for (const k of ['board', 'grid', 'locked', 'a', 'b']) colors[k] = s.getPropertyValue('--' + k).trim();
+  }
+
+  function nextShape() {
+    if (!bag.length) {
+      bag = [0,1,2,3,4,5,6];
+      for (let i = bag.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [bag[i], bag[j]] = [bag[j], bag[i]]; }
+    }
+    return SHAPES[bag.pop()].map(r => r.slice());
+  }
+
+  function rotateCW(m) { const n = m.length; return m.map((row, y) => row.map((_, x) => m[n - 1 - x][y])); }
+
+  function occupies(o, cx, cy) {
+    const c = cx - o.x, r = cy - o.y;
+    return r >= 0 && c >= 0 && r < o.m.length && c < o.m.length && o.m[r][c];
+  }
+
+  function boardHit(m, x, y) {
+    for (let r = 0; r < m.length; r++) for (let c = 0; c < m.length; c++) {
+      if (!m[r][c]) continue;
+      const cx = x + c, cy = y + r;
+      if (cx < 0 || cx >= W || cy >= H) return true;
+      if (cy >= 0 && board[cy][cx]) return true;
+    }
+    return false;
+  }
+
+  // Returns 'board' for walls/floor/stack, 'piece' for the other falling piece, or null.
+  function collide(slot, m, x, y) {
+    if (boardHit(m, x, y)) return 'board';
+    const o = pieces[1 - slot];
+    if (!o) return null;
+    for (let r = 0; r < m.length; r++) for (let c = 0; c < m.length; c++)
+      if (m[r][c] && occupies(o, x + c, y + r)) return 'piece';
+    return null;
+  }
+
+  function trySpawn(slot) {
+    const m = pending[slot];
+    const first = m.findIndex(r => r.some(Boolean));
+    const base = Math.round((slot ? 10.5 : 3.5) - m.length / 2), y = -first;
+    const r = collide(slot, m, base, y);
+    if (r === 'board') { gameOver(); return; }
+    let x = base;
+    if (r === 'piece') {
+      x = null;
+      for (const dx of [-1, 1, -2, 2, -3, 3]) if (!collide(slot, m, base + dx, y)) { x = base + dx; break; }
+      if (x === null) return; // wait for the other piece to move out of the way
+    }
+    pieces[slot] = { m, x, y, slot, t: 0 };
+    pending[slot] = null;
+  }
+
+  function lock(p) {
+    let above = false;
+    for (let r = 0; r < p.m.length; r++) for (let c = 0; c < p.m.length; c++) {
+      if (!p.m[r][c]) continue;
+      const cy = p.y + r;
+      if (cy < 0) above = true; else board[cy][p.x + c] = 1;
+    }
+    pieces[p.slot] = null;
+    if (above) { gameOver(); return; }
+    clearLines();
+    const o = pieces[1 - p.slot];
+    if (o) { let g = 0; while (boardHit(o.m, o.x, o.y) && g++ < H) o.y--; }
+    pending[p.slot] = nextShape();
+    trySpawn(p.slot);
+  }
+
+  function clearLines() {
+    let n = 0;
+    for (let y = H - 1; y >= 0; y--) {
+      if (board[y].every(Boolean)) { board.splice(y, 1); board.unshift(Array(W).fill(0)); n++; y++; }
+    }
+    if (n) {
+      lines += n;
+      score += [0, 100, 300, 500, 800][Math.min(n, 4)] * level;
+      level = startLevel + Math.floor(lines / 10);
+      updateHud();
+    }
+  }
+
+  function stepDown(p) {
+    const r = collide(p.slot, p.m, p.x, p.y + 1);
+    if (!r) { p.y++; return true; }
+    if (r === 'board') { lock(p); return false; }
+    // Blocked by the other falling piece: only lock if the two are wedged into each other.
+    const o = pieces[1 - p.slot];
+    if (o && collide(o.slot, o.m, o.x, o.y + 1) === 'piece') lock(p);
+    return false;
+  }
+
+  function move(slot, dx) {
+    const p = pieces[slot];
+    if (p && !collide(slot, p.m, p.x + dx, p.y)) p.x += dx;
+  }
+
+  function rotate(slot) {
+    const p = pieces[slot];
+    if (!p || p.m.length === 2) return;
+    const m = rotateCW(p.m);
+    for (const [dx, dy] of [[0,0],[-1,0],[1,0],[-2,0],[2,0],[0,-1]]) {
+      if (!collide(slot, m, p.x + dx, p.y + dy)) { p.m = m; p.x += dx; p.y += dy; return; }
+    }
+  }
+
+  function center(m) {
+    let sx = 0, sy = 0, n = 0;
+    for (let r = 0; r < m.length; r++) for (let c = 0; c < m.length; c++) if (m[r][c]) { sx += c; sy += r; n++; }
+    return [sx / n, sy / n];
+  }
+
+  function overlap(m1, x1, y1, m2, x2, y2) {
+    for (let r = 0; r < m1.length; r++) for (let c = 0; c < m1.length; c++) {
+      if (!m1[r][c]) continue;
+      const rr2 = y1 + r - y2, cc2 = x1 + c - x2;
+      if (rr2 >= 0 && cc2 >= 0 && rr2 < m2.length && cc2 < m2.length && m2[rr2][cc2]) return true;
+    }
+    return false;
+  }
+
+  // The two shapes trade places; each keyboard keeps its own position.
+  function swapShapes() {
+    const [a, b] = pieces;
+    if (!a || !b) return;
+    const anchor = (m, at) => {
+      const [fc, fr] = center(at.m), [nc, nr] = center(m);
+      return [Math.round(at.x + fc - nc), Math.round(at.y + fr - nr)];
+    };
+    const [ax, ay] = anchor(b.m, a), [bx, by] = anchor(a.m, b);
+    const KICKS = [[0,0],[-1,0],[1,0],[0,-1],[-2,0],[2,0],[-1,-1],[1,-1]];
+    for (const [dax, day] of KICKS) {
+      const nax = ax + dax, nay = ay + day;
+      if (boardHit(b.m, nax, nay)) continue;
+      for (const [dbx, dby] of KICKS) {
+        const nbx = bx + dbx, nby = by + dby;
+        if (boardHit(a.m, nbx, nby) || overlap(b.m, nax, nay, a.m, nbx, nby)) continue;
+        const am = a.m;
+        a.m = b.m; a.x = nax; a.y = nay;
+        b.m = am;  b.x = nbx; b.y = nby;
+        return;
+      }
+    }
+    // No room for the exchange: nothing happens.
+  }
+
+  const gravity = () => GRAV[Math.min(level, MAX_LEVEL) - 1];
+
+  function updateHud() { scoreEl.textContent = score; levelEl.textContent = level; }
+
+  function start() {
+    board = emptyBoard(); bag = [];
+    pieces = [null, null]; pending = [nextShape(), nextShape()];
+    score = 0; lines = 0; level = startLevel;
+    held.forEach(h => { h.L = h.R = h.D = false; h.dir = 0; h.das = 0; });
+    state = 'play';
+    trySpawn(0); trySpawn(1);
+    updateHud();
+    menu.classList.add('hidden');
+  }
+
+  function gameOver() {
+    if (state !== 'play') return;
+    state = 'over';
+    pickEl.textContent = startLevel;
+    menu.classList.remove('hidden');
+  }
+
+  function setPick(v) { startLevel = Math.max(MIN_LEVEL, Math.min(MAX_LEVEL, v)); pickEl.textContent = startLevel; }
+
+  // ---------- input ----------
+  const KEYS = {
+    KeyA: [0, 'L'], KeyD: [0, 'R'], KeyW: [0, 'U'], KeyS: [0, 'D'],
+    ArrowLeft: [1, 'L'], ArrowRight: [1, 'R'], ArrowUp: [1, 'U'], ArrowDown: [1, 'D'],
+  };
+
+  addEventListener('keydown', e => {
+    const k = KEYS[e.code];
+    if (k || e.code === 'Space' || e.code === 'Enter') e.preventDefault();
+
+    if (state !== 'play') {
+      if (e.repeat && !k) return;
+      if (e.code === 'Space' || e.code === 'Enter') start();
+      else if (k && (k[1] === 'L' || k[1] === 'D')) setPick(startLevel - 1);
+      else if (k && (k[1] === 'R' || k[1] === 'U')) setPick(startLevel + 1);
+      return;
+    }
+
+    if (e.code === 'Space') { if (!e.repeat) swapShapes(); return; }
+    if (!k || e.repeat) return;
+    const [c, act] = k, h = held[c];
+    if (act === 'U') rotate(c);
+    else if (act === 'D') h.D = true;
+    else { h[act] = true; h.dir = act === 'L' ? -1 : 1; h.das = 0; move(c, h.dir); }
+  });
+
+  addEventListener('keyup', e => {
+    const k = KEYS[e.code];
+    if (!k) return;
+    const [c, act] = k, h = held[c];
+    if (act === 'D') h.D = false;
+    if (act === 'L' || act === 'R') {
+      h[act] = false;
+      h.dir = h.L ? -1 : h.R ? 1 : 0;
+      h.das = 0;
+    }
+  });
+
+  addEventListener('blur', () => held.forEach(h => { h.L = h.R = h.D = false; h.dir = 0; }));
+
+  const tap = (id, fn) => $(id).addEventListener('click', e => { e.currentTarget.blur(); fn(); });
+  tap('dec', () => setPick(startLevel - 1));
+  tap('inc', () => setPick(startLevel + 1));
+  tap('play', start);
+
+  // ---------- loop ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(100, now - last); last = now;
+    if (state === 'play') {
+      for (let c = 0; c < 2; c++) {
+        const h = held[c];
+        if (!h.dir) continue;
+        h.das += dt;
+        let guard = 0;
+        while (h.das >= DAS && guard++ < 10) { move(c, h.dir); h.das -= ARR; }
+      }
+      for (let slot = 0; slot < 2 && state === 'play'; slot++) {
+        if (!pieces[slot] && pending[slot]) trySpawn(slot);
+        const p = pieces[slot];
+        if (!p) continue;
+        const soft = held[slot].D;
+        const iv = soft ? Math.min(gravity(), SOFT) : gravity();
+        p.t = Math.min(p.t + dt, iv);
+        while (p.t >= iv && pieces[slot] === p && state === 'play') {
+          p.t -= iv;
+          if (stepDown(p) && soft) { score++; updateHud(); }
+        }
+      }
+    }
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- drawing ----------
+  function rr(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  function block(x, y, fill) {
+    const pad = Math.max(1, cell * 0.06), s = cell - pad * 2;
+    rr(x * cell + pad, y * cell + pad, s, s, cell * 0.2);
+    ctx.fillStyle = fill; ctx.fill();
+  }
+  function ghost(x, y, stroke) {
+    const pad = Math.max(2, cell * 0.12), s = cell - pad * 2;
+    rr(x * cell + pad, y * cell + pad, s, s, cell * 0.16);
+    ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+
+  function draw() {
+    const bw = W * cell, bh = H * cell;
+    ctx.clearRect(0, 0, bw, bh);
+    ctx.fillStyle = colors.board; ctx.fillRect(0, 0, bw, bh);
+
+    ctx.fillStyle = colors.grid;
+    const d = Math.max(1.5, cell * 0.07);
+    for (let y = 1; y < H; y++) for (let x = 1; x < W; x++) ctx.fillRect(x * cell - d / 2, y * cell - d / 2, d, d);
+
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (board[y][x]) block(x, y, colors.locked);
+
+    for (let slot = 0; slot < 2; slot++) {
+      const p = pieces[slot];
+      if (!p) continue;
+      const col = slot === 0 ? colors.a : colors.b;
+      let gy = p.y;
+      while (!boardHit(p.m, p.x, gy + 1)) gy++;
+      if (gy > p.y && state === 'play') {
+        ctx.globalAlpha = 0.45;
+        for (let r = 0; r < p.m.length; r++) for (let c = 0; c < p.m.length; c++)
+          if (p.m[r][c] && gy + r >= 0) ghost(p.x + c, gy + r, col);
+        ctx.globalAlpha = 1;
+      }
+      for (let r = 0; r < p.m.length; r++) for (let c = 0; c < p.m.length; c++)
+        if (p.m[r][c] && p.y + r >= 0) block(p.x + c, p.y + r, col);
+    }
+  }
+
+  function resize() {
+    const hud = $('hud').offsetHeight + 18;
+    const availH = document.body.clientHeight - hud - 40;
+    const availW = document.body.clientWidth - 32;
+    cell = Math.max(10, Math.floor(Math.min(availH / H, availW / W)));
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = W * cell * dpr; cv.height = H * cell * dpr;
+    cv.style.width = W * cell + 'px'; cv.style.height = H * cell + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    $('wrap').style.width = W * cell + 'px';
+    draw();
+  }
+
+  readColors();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColors(); draw(); });
+  new MutationObserver(() => { readColors(); draw(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  addEventListener('resize', resize);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(resize);
+  resize();
+  updateHud();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
